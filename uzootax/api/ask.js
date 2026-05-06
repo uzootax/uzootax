@@ -18,7 +18,8 @@ module.exports = async function(req, res) {
   }
 
   try {
-    const body = JSON.stringify(req.body);
+    // Vercel은 body를 자동 파싱하므로 다시 stringify
+    const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
 
     const data = await new Promise((resolve, reject) => {
       const options = {
