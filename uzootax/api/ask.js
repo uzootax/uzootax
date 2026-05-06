@@ -11,13 +11,8 @@ module.exports = async function(req, res) {
   if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: 'API key not configured' });
 
   try {
-    // raw body 직접 읽기
-    const body = await new Promise((resolve, reject) => {
-      let data = '';
-      req.on('data', chunk => data += chunk);
-      req.on('end', () => resolve(data));
-      req.on('error', reject);
-    });
+    // Vercel은 body를 자동으로 객체로 파싱 → 다시 string으로
+    const body = JSON.stringify(req.body);
 
     const data = await new Promise((resolve, reject) => {
       const options = {
