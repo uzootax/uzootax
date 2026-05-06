@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우주세법 — 세무사 시험 계산기</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@500;700&display=swap');
+:root {
+  --bg:#F4F6F9; --card:#fff; --border:#E2E8F0;
+  --green:#1E6B3C; --green-l:#E8F5EE;
+  --blue:#1A5C9E; --blue-l:#E8F0FA;
+  --orange:#B85C00; --orange-l:#FEF3E8;
+  --text:#111827; --text2:#4B5563; --text3:#9CA3AF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+
+.logo{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;text-align:center;margin-bottom:6px;letter-spacing:-1px}
+.logo em{color:var(--green);font-style:normal}
+.tagline{font-size:13px;color:var(--text3);text-align:center;margin-bottom:40px}
+
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:720px;width:100%}
+
+.card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:28px 24px;text-decoration:none;color:inherit;transition:all .2s;display:flex;flex-direction:column;gap:10px}
+.card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.1)}
+
+.card-icon{font-size:32px;line-height:1}
+.card-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.card-title{font-size:20px;font-weight:700}
+.card-desc{font-size:12px;color:var(--text3);line-height:1.7}
+.card-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.card-arrow{margin-top:auto;font-size:12px;font-weight:600;padding-top:12px;border-top:1px solid var(--border)}
+
+.card-income{border-color:var(--green)}
+.card-income:hover{border-color:var(--green);box-shadow:0 12px 32px rgba(30,107,60,.15)}
+.card-income .card-label{color:var(--green)}
+.card-income .card-arrow{color:var(--green)}
+.card-income .tag{background:var(--green-l);color:var(--green)}
+
+.card-corp{border-color:var(--blue)}
+.card-corp:hover{border-color:var(--blue);box-shadow:0 12px 32px rgba(26,92,158,.15)}
+.card-corp .card-label{color:var(--blue)}
+.card-corp .card-arrow{color:var(--blue)}
+.card-corp .tag{background:var(--blue-l);color:var(--blue)}
+
+.card-vat{border-color:var(--orange)}
+.card-vat:hover{border-color:var(--orange);box-shadow:0 12px 32px rgba(184,92,0,.15)}
+.card-vat .card-label{color:var(--orange)}
+.card-vat .card-arrow{color:var(--orange)}
+.card-vat .tag{background:var(--orange-l);color:var(--orange)}
+
+.footer{margin-top:36px;font-size:11px;color:var(--text3);text-align:center;line-height:1.8}
+.badge{display:inline-block;background:var(--card);border:1px solid var(--border);padding:3px 10px;border-radius:20px;font-size:10px;font-family:'JetBrains Mono',monospace;margin:0 3px}
+
+@media(max-width:600px){
+  .cards{grid-template-columns:1fr}
+  .logo{font-size:22px}
+}
+</style>
+</head>
+<body>
+
+<div class="logo">우주<em>세법</em>.calc</div>
+<div class="tagline">세무사 시험 계산기 + AI 세법 Q&A · 2026년 현행 법령 기준</div>
+
+<div class="cards">
+
+  <a class="card card-income" href="tax_chat_calc.html">
+    <div class="card-icon">🐑</div>
+    <div class="card-label">A구역</div>
+    <div class="card-title">소득세</div>
+    <div class="card-desc">종합소득세 전체 흐름<br>Gross-up · 결손금 통산 · 세액공제</div>
+    <div class="card-tags">
+      <span class="tag">종합소득</span>
+      <span class="tag">퇴직소득</span>
+      <span class="tag">양도소득</span>
+    </div>
+    <div class="card-arrow">계산기 열기 →</div>
+  </a>
+
+  <a class="card card-corp" href="corp_tax_calc.html">
+    <div class="card-icon">🚀</div>
+    <div class="card-label">B구역</div>
+    <div class="card-title">법인세</div>
+    <div class="card-desc">세무조정 전체 흐름<br>감가상각 · 업무추진비 · 외국납부</div>
+    <div class="card-tags">
+      <span class="tag">세무조정</span>
+      <span class="tag">소득처분</span>
+      <span class="tag">AI Q&A</span>
+    </div>
+    <div class="card-arrow">계산기 열기 →</div>
+  </a>
+
+  <a class="card card-vat" href="vat_calc.html">
+    <div class="card-icon">🐥</div>
+    <div class="card-label">C구역</div>
+    <div class="card-title">부가세</div>
+    <div class="card-desc">공급시기 · 의제매입 · 공통매입<br>간이과세자 · 선발행 특례</div>
+    <div class="card-tags">
+      <span class="tag">공급시기</span>
+      <span class="tag">의제매입</span>
+      <span class="tag">간이과세</span>
+    </div>
+    <div class="card-arrow">계산기 열기 →</div>
+  </a>
+
+</div>
+
+<div class="footer">
+  <span class="badge">2026 현행 법령</span>
+  <span class="badge">AI Q&A 탑재</span>
+  <a class="badge" href="https://cafe.naver.com/uzootax" target="_blank" style="text-decoration:none;color:inherit">☕ 우주세법 카페</a>
+  <a class="badge" href="https://www.youtube.com/@Uzootax" target="_blank" style="text-decoration:none;color:#C0392B">▶ 우주세법 유튜브</a><br><br>
+  채팅창에 <strong>숫자</strong> 입력 → 자동 계산 &nbsp;|&nbsp; <strong>질문</strong> 입력 → AI 세법 설명
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우주세법 — 법인세 계산기</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+:root {
+  --bg:#F0F2F5; --card:#fff; --border:#DDE1E7;
+  --blue:#1A5C9E; --blue-l:#E8F0FA; --blue-m:#85B7EB;
+  --yellow:#F59E0B; --yellow-l:#FFFBEB; --yellow-b:#FDE68A;
+  --red:#C0392B; --red-l:#FDECEA;
+  --green:#1E6B3C; --green-l:#E8F5EE;
+  --orange:#B85C00; --orange-l:#FEF3E8;
+  --purple:#6D4FC9; --purple-l:#F0EEFE;
+  --text:#111827; --text2:#374151; --text3:#9CA3AF;
+  --mono:'JetBrains Mono',monospace; --r:12px; --rsm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column}
+
+/* HEADER */
+.hd{background:var(--card);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:8px;flex-shrink:0;height:52px}
+.logo{font-family:var(--mono);font-size:13px;font-weight:500;padding-right:16px;border-right:1px solid var(--border);margin-right:4px}
+.logo em{color:var(--blue);font-style:normal}
+.menu-seg{display:flex;gap:0;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:3px}
+.mseg{padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;border-radius:6px;color:var(--text3);transition:all .15s;white-space:nowrap}
+.mseg.on{background:var(--blue);color:white}
+.hright{margin-left:auto;font-size:11px;color:var(--text3);font-family:var(--mono)}
+
+/* SPLIT */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* CHAT */
+.chat-col{width:360px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--card)}
+.chat-history{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:90%;padding:9px 13px;border-radius:10px;font-size:13px;line-height:1.7}
+.msg.bot{background:var(--blue-l);color:#0C3D75;align-self:flex-start;border-bottom-left-radius:3px}
+.msg.user{background:var(--blue);color:white;align-self:flex-end;border-bottom-right-radius:3px}
+.msg.sys{background:var(--bg);color:var(--text3);font-size:11px;align-self:center;border-radius:20px;padding:4px 12px}
+.msg strong{font-weight:700}
+.msg .warn{color:var(--orange);font-size:11px;display:block;margin-top:4px}
+
+/* 자동완성 */
+.sug-box{position:absolute;bottom:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:var(--rsm);box-shadow:0 -4px 20px rgba(0,0,0,.1);max-height:220px;overflow-y:auto;display:none;z-index:100}
+.sug-box.show{display:block}
+.sug-item{padding:8px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bg);transition:background .1s}
+.sug-item:hover,.sug-item.sel{background:var(--blue-l)}
+.sug-tag{font-size:10px;padding:1px 6px;border-radius:6px;flex-shrink:0;font-weight:600}
+.sug-tag.blue{background:var(--blue-l);color:var(--blue)}
+.sug-name{flex:1;font-weight:500}
+.sug-hint{font-size:10px;color:var(--text3)}
+
+.chat-input-wrap{padding:10px 12px;border-top:1px solid var(--border)}
+.autocomplete{position:relative}
+.chat-input-row{display:flex;gap:8px;align-items:center}
+.chat-input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:22px;font-family:'Noto Sans KR',sans-serif;font-size:13px;background:var(--bg);outline:none;transition:all .15s}
+.chat-input:focus{border-color:var(--blue);background:white;box-shadow:0 0 0 3px var(--blue-l)}
+.send-btn{width:38px;height:38px;border-radius:50%;background:var(--blue);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.send-btn:hover{background:#0C447C}
+.send-btn svg{width:16px;height:16px;fill:white}
+.input-hint{font-size:10px;color:var(--text3);margin-top:5px;padding:0 4px}
+
+/* CALC */
+.calc-col{flex:1;overflow-y:auto;padding:16px 20px}
+.calc-sec{background:var(--card);border:2px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden;transition:border-color .2s,box-shadow .2s}
+.calc-sec.active{border-color:var(--yellow);box-shadow:0 0 0 3px var(--yellow-b)}
+.calc-sec.filled{border-color:var(--blue-m)}
+.cs-head{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none}
+.cs-head:hover{background:var(--bg)}
+.cs-num{font-family:var(--mono);font-size:11px;width:22px;height:22px;border-radius:50%;background:var(--text3);color:white;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.calc-sec.filled .cs-num{background:var(--blue)}
+.calc-sec.active .cs-num{background:var(--yellow);color:var(--text)}
+.cs-title{font-size:13px;font-weight:600;flex:1}
+.cs-sum{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--blue)}
+.cs-arr{font-size:10px;color:var(--text3);transition:transform .2s}
+.calc-sec.open .cs-arr{transform:rotate(180deg)}
+.cs-body{display:none;padding:0 16px 14px}
+.calc-sec.open .cs-body{display:block}
+
+/* 세무조정 탭 */
+.adj-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.adj-tab{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;background:var(--bg);color:var(--text3);border:1px solid var(--border);transition:all .12s}
+.adj-tab:hover{color:var(--text2)}
+.adj-tab.on{background:var(--blue);color:white;border-color:var(--blue)}
+.adj-panel{display:none}
+.adj-panel.on{display:block}
+.adj-desc{font-size:11px;color:var(--text3);margin-bottom:8px;padding:6px 10px;background:var(--bg);border-radius:var(--rsm);line-height:1.6}
+.adj-auto{font-size:11px;color:var(--blue);background:var(--blue-l);border-radius:var(--rsm);padding:6px 10px;margin-top:6px;display:none;line-height:1.7}
+.adj-auto.show{display:block}
+
+/* 소득처분 배지 */
+.disp-badge{font-size:10px;padding:1px 7px;border-radius:6px;font-weight:600;margin-left:4px}
+.db-reserve{background:#DCFCE7;color:#15803D}    /* 유보 */
+.db-out{background:var(--red-l);color:var(--red)} /* 사외유출 */
+.db-other{background:var(--bg);color:var(--text3)}/* 기타 */
+
+/* FORM */
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.field-grid.trio{grid-template-columns:1fr 1fr 1fr}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:11px;font-weight:600;color:var(--text2)}
+.fg .hint{font-size:10px;color:var(--text3)}
+.iw{position:relative}
+.iw .u{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text3);pointer-events:none}
+input[type=number],select,input[type=text]{padding:7px 10px;border:1px solid var(--border);border-radius:var(--rsm);font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg);width:100%;transition:all .15s}
+input:focus,select:focus{outline:none;border-color:var(--blue);background:white}
+input.filled{border-color:var(--blue-m);background:white}
+.comma-display{font-size:10px;color:var(--blue);font-family:var(--mono);font-weight:500;min-height:14px}
+@keyframes fp{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
+input.jf{animation:fp .3s ease}
+
+/* LOG */
+.lrow{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--bg);font-size:12px}
+.lrow:last-child{border-bottom:none}
+.lrow .ll{color:var(--text3)}
+.lrow .lv{font-family:var(--mono);font-weight:500}
+.lrow.lm .lv{color:var(--red)}
+.lrow.lt{border-top:1.5px solid var(--border);margin-top:4px;padding-top:7px}
+.lrow.lt .ll,.lrow.lt .lv{color:var(--blue);font-weight:700}
+.lrow.sub .ll,.lrow.sub .lv{opacity:.65;font-size:11px}
+
+/* RESULT BAR */
+.result-bar{position:sticky;bottom:0;background:linear-gradient(135deg,#0C447C,#1A5C9E);color:white;padding:12px 18px;border-radius:var(--r) var(--r) 0 0;margin:0 -20px -16px;box-shadow:0 -4px 20px rgba(0,0,0,.1)}
+.rb-label{font-size:11px;opacity:.7}
+.rb-val{font-family:var(--mono);font-size:20px;font-weight:500}
+.rb-steps{display:flex;gap:12px;margin-top:6px;font-size:11px;opacity:.8;flex-wrap:wrap}
+.rb-step span{opacity:.7}
+
+/* 소득처분 요약 */
+.disp-summary{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.disp-item{font-size:11px;padding:4px 10px;border-radius:20px;font-family:var(--mono)}
+.di-reserve{background:#DCFCE7;color:#15803D}
+.di-out{background:var(--red-l);color:var(--red)}
+
+/* ===== 모바일 탭 바 ===== */
+.mobile-tabs{display:none;background:var(--card);border-bottom:2px solid var(--border);flex-shrink:0}
+.mob-tab{flex:1;padding:11px 8px;text-align:center;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.mob-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* ===== 반응형: 모바일 (768px 미만) ===== */
+@media(max-width:767px){
+  /* 모바일 탭 바 표시 */
+  .mobile-tabs{display:flex}
+
+  /* 헤더 */
+  .hd{padding:0 10px;height:46px;gap:6px}
+  .logo{font-size:12px;padding-right:10px}
+  .mseg{padding:4px 9px;font-size:11px}
+  .hright{display:none}
+
+  /* 메인 레이아웃: 단일 컬럼 */
+  .main{flex-direction:column}
+
+  /* 채팅 패널 */
+  .chat-col{width:100%;border-right:none;display:none;flex:1;min-height:0}
+  .chat-col.mob-active{display:flex}
+
+  /* 계산기 패널 */
+  .calc-col{display:none;flex:1;padding:12px;overflow-y:auto}
+  .calc-col.mob-active{display:block}
+
+  /* result-bar 모바일 조정 */
+  .result-bar{margin:0 -12px -12px;border-radius:0;padding:10px 14px}
+  .rb-val{font-size:17px}
+  .rb-steps{gap:6px;font-size:10px}
+
+  /* 3열 그리드 → 2열로 */
+  .field-grid.trio{grid-template-columns:1fr 1fr}
+
+  /* 세무조정 탭 가로 스크롤 */
+  .adj-tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+  .adj-tab{flex-shrink:0}
+
+  /* 입력 힌트 줄임 */
+  .input-hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* 채팅 입력 placeholder 축약 */
+  .chat-input{font-size:12px}
+}
+
+/* ===== 반응형: 태블릿 가로 / 좁은 데스크톱 ===== */
+@media(min-width:768px) and (max-width:1023px){
+  .chat-col{width:300px}
+  .hright{display:none}
+}
+
+/* ===== 데스크톱: 항상 양쪽 패널 표시 ===== */
+@media(min-width:768px){
+  .mobile-tabs{display:none!important}
+  .chat-col{display:flex!important}
+  .calc-col{display:block!important}
+}
+</style>
+</head>
+<body>
+
+<header class="hd">
+  <div class="logo">우주<em>세법</em></div>
+  <div class="menu-seg">
+    <div class="mseg" onclick="location.href='tax_chat_calc.html'">소득세</div>
+    <div class="mseg on">법인세</div>
+    <div class="mseg" style="opacity:.5;cursor:not-allowed">부가세</div>
+  </div>
+  <div class="hright" id="hright-info"></div>
+</header>
+
+<!-- 모바일 탭 바 (데스크톱에서는 숨김) -->
+<div class="mobile-tabs" id="mobile-tabs">
+  <div class="mob-tab on" data-tab="chat" onclick="switchMobTab('chat')">💬 채팅</div>
+  <div class="mob-tab" data-tab="calc" onclick="switchMobTab('calc')">🧮 계산기</div>
+</div>
+
+<div class="main">
+
+<!-- ===== CHAT ===== -->
+<div class="chat-col">
+  <div class="chat-history" id="chat-history">
+    <div class="msg bot">법인세 계산기 + 세법 Q&A 채팅이에요 😊<br><strong>계산 입력:</strong> 당기순이익 5억, 감가상각 한도초과 300만<br><strong>세법 질문:</strong> 특수관계인이 뭐야? 유보가 뭔가요? 임원퇴직 한도 계산법?</div>
+    <div class="msg sys">법인세 모드 · AI Q&A 활성화</div>
+  </div>
+  <div class="chat-input-wrap">
+    <div class="autocomplete">
+      <div class="sug-box" id="sug-box"></div>
+    </div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chat-input" type="text"
+        placeholder="금액 입력 또는 세법 질문... (예: 유보가 뭐야?)"
+        oninput="onChatInput(this.value)"
+        onkeydown="onChatKey(event)"
+        autocomplete="off">
+      <button class="send-btn" onclick="sendChat()">
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+    <div class="input-hint" id="input-hint">💡 금액 입력 또는 세법 질문 모두 가능 | "유보가 뭐야?" "임원퇴직 한도 계산" "감가상각 300만"</div>
+  </div>
+</div>
+
+<!-- ===== CALCULATOR ===== -->
+<div class="calc-col" id="calc-col">
+
+<!-- ① 당기순이익 -->
+<div class="calc-sec open" id="cs1">
+  <div class="cs-head" onclick="toggleCS('cs1')">
+    <div class="cs-num">①</div>
+    <div class="cs-title">당기순이익 (세전)</div>
+    <div class="cs-sum" id="sum1"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body open">
+    <div class="field-grid">
+      <div class="fg">
+        <label>당기순이익</label>
+        <div class="iw"><input type="number" id="f-ni" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div>
+        <div class="comma-display" id="cd-ni"></div>
+        <div class="hint">법인세비용 차감 전 순이익 사용 시 주의</div>
+      </div>
+      <div class="fg">
+        <label>법인 유형</label>
+        <select id="f-type" onchange="calc()">
+          <option value="general">일반법인</option>
+          <option value="sme">중소기업 (이월결손금 100%)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ② 익금산입·손금불산입 -->
+<div class="calc-sec open" id="cs2">
+  <div class="cs-head" onclick="toggleCS('cs2')">
+    <div class="cs-num">②</div>
+    <div class="cs-title">익금산입 · 손금불산입 (+)</div>
+    <div class="cs-sum" id="sum2"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body open">
+    <div class="adj-tabs">
+      <div class="adj-tab on" onclick="switchAdj('depre',this)">감가상각</div>
+      <div class="adj-tab" onclick="switchAdj('entertain',this)">업무추진비</div>
+      <div class="adj-tab" onclick="switchAdj('allow',this)">대손충당금</div>
+      <div class="adj-tab" onclick="switchAdj('car',this)">업무용승용차</div>
+      <div class="adj-tab" onclick="switchAdj('interest',this)">지급이자</div>
+      <div class="adj-tab" onclick="switchAdj('donation',this)">기부금</div>
+      <div class="adj-tab" onclick="switchAdj('addother',this)">기타+</div>
+    </div>
+
+    <!-- 감가상각 시부인 -->
+    <div class="adj-panel on" id="adjp-depre">
+      <div class="adj-desc">세무상 상각범위액 초과 → 손금불산입(유보) | 미달 → 손금산입(△유보, 법인 선택)</div>
+      <div class="field-grid trio">
+        <div class="fg"><label>취득가액</label><div class="iw"><input type="number" id="f-d-cost" placeholder="0" oninput="mf(this);calcDepre()"><span class="u">원</span></div><div class="comma-display" id="cd-d-cost"></div></div>
+        <div class="fg"><label>회계상 감가상각누계액</label><div class="iw"><input type="number" id="f-d-acc" placeholder="0" oninput="mf(this);calcDepre()"><span class="u">원</span></div><div class="comma-display" id="cd-d-acc"></div></div>
+        <div class="fg"><label>기초 유보잔액 (△이면 음수)</label><div class="iw"><input type="number" id="f-d-res" placeholder="0" oninput="mf(this);calcDepre()"><span class="u">원</span></div><div class="hint">△유보=음수 입력</div><div class="comma-display" id="cd-d-res"></div></div>
+        <div class="fg"><label>당기 회계상 감가상각비</label><div class="iw"><input type="number" id="f-d-curr" placeholder="0" oninput="mf(this);calcDepre()"><span class="u">원</span></div><div class="comma-display" id="cd-d-curr"></div></div>
+        <div class="fg"><label>상각방법</label><select id="f-d-method" onchange="calcDepre()"><option value="str">정액법</option><option value="dec">정률법</option></select></div>
+        <div class="fg"><label>상각률 (예: 0.1)</label><input type="number" id="f-d-rate" placeholder="0.05" step="0.001" oninput="calcDepre()"></div>
+      </div>
+      <div class="adj-auto" id="auto-depre"></div>
+    </div>
+
+    <!-- 업무추진비 -->
+    <div class="adj-panel" id="adjp-entertain">
+      <div class="adj-desc">한도초과 → 손금불산입(기타사외유출) | 증빙없는분 → 즉시 손금불산입</div>
+      <div class="field-grid trio">
+        <div class="fg"><label>장부상 업무추진비 지출</label><div class="iw"><input type="number" id="f-e-spent" placeholder="0" oninput="mf(this);calcEntertain()"><span class="u">원</span></div><div class="comma-display" id="cd-e-spent"></div></div>
+        <div class="fg"><label>적격증빙 없는 금액</label><div class="iw"><input type="number" id="f-e-noproof" placeholder="0" oninput="mf(this);calcEntertain()"><span class="u">원</span></div><div class="comma-display" id="cd-e-noproof"></div></div>
+        <div class="fg"><label>일반 수입금액</label><div class="iw"><input type="number" id="f-e-rev" placeholder="0" oninput="mf(this);calcEntertain()"><span class="u">원</span></div><div class="comma-display" id="cd-e-rev"></div></div>
+        <div class="fg"><label>특수관계인 수입금액</label><div class="iw"><input type="number" id="f-e-rel" placeholder="0" oninput="mf(this);calcEntertain()"><span class="u">원</span></div><div class="hint">한도율 = 일반의 10%</div><div class="comma-display" id="cd-e-rel"></div></div>
+        <div class="fg"><label>법인 구분</label><select id="f-e-sme" onchange="calcEntertain()"><option value="0">일반법인 (기본 1,200만)</option><option value="1">중소기업 (기본 3,600만)</option></select></div>
+        <div class="fg"><label>사업연도 월수</label><input type="number" id="f-e-months" placeholder="12" value="12" oninput="calcEntertain()"></div>
+      </div>
+      <div class="adj-auto" id="auto-entertain"></div>
+    </div>
+
+    <!-- 대손충당금 -->
+    <div class="adj-panel" id="adjp-allow">
+      <div class="adj-desc">한도 = MAX(대손실적률, 1%) × 기말채권 | 한도초과 → 손금불산입(유보)</div>
+      <div class="field-grid trio">
+        <div class="fg"><label>기말 채권잔액</label><div class="iw"><input type="number" id="f-al-end" placeholder="0" oninput="mf(this);calcAllow()"><span class="u">원</span></div><div class="comma-display" id="cd-al-end"></div></div>
+        <div class="fg"><label>기초 채권잔액</label><div class="iw"><input type="number" id="f-al-start" placeholder="0" oninput="mf(this);calcAllow()"><span class="u">원</span></div><div class="comma-display" id="cd-al-start"></div></div>
+        <div class="fg"><label>당기 대손확정액</label><div class="iw"><input type="number" id="f-al-loss" placeholder="0" oninput="mf(this);calcAllow()"><span class="u">원</span></div><div class="comma-display" id="cd-al-loss"></div></div>
+        <div class="fg"><label>장부상 충당금 설정액</label><div class="iw"><input type="number" id="f-al-set" placeholder="0" oninput="mf(this);calcAllow()"><span class="u">원</span></div><div class="comma-display" id="cd-al-set"></div></div>
+        <div class="fg"><label>전기 한도초과 유보</label><div class="iw"><input type="number" id="f-al-prev" placeholder="0" oninput="mf(this);calcAllow()"><span class="u">원</span></div><div class="comma-display" id="cd-al-prev"></div></div>
+      </div>
+      <div class="adj-auto" id="auto-allow"></div>
+    </div>
+
+    <!-- 업무용승용차 -->
+    <div class="adj-panel" id="adjp-car">
+      <div class="adj-desc">업무사용비율로 배분 | 감가비상당액×업무비율 - 800만 = 한도초과(유보) | 전체×(1-업무비율) = 사외유출</div>
+      <div class="field-grid trio">
+        <div class="fg"><label>총 주행거리 (km)</label><input type="number" id="f-c-total" placeholder="0" oninput="calcCar()"></div>
+        <div class="fg"><label>업무용 주행거리 (km)</label><input type="number" id="f-c-biz" placeholder="0" oninput="calcCar()"></div>
+        <div class="fg"><label>감가비상당액 (리스료 중 감가 부분)</label><div class="iw"><input type="number" id="f-c-depr" placeholder="0" oninput="mf(this);calcCar()"><span class="u">원</span></div><div class="comma-display" id="cd-c-depr"></div></div>
+        <div class="fg"><label>기타 유지비용 (보험·세금·수선 등)</label><div class="iw"><input type="number" id="f-c-other" placeholder="0" oninput="mf(this);calcCar()"><span class="u">원</span></div><div class="comma-display" id="cd-c-other"></div></div>
+        <div class="fg"><label>운행기록부 작성 여부</label><select id="f-c-log" onchange="calcCar()"><option value="1">작성 (업무비율 인정)</option><option value="0">미작성 (50% 강제 적용)</option></select></div>
+      </div>
+      <div class="adj-auto" id="auto-car"></div>
+    </div>
+
+    <!-- 지급이자 손금불산입 -->
+    <div class="adj-panel" id="adjp-interest">
+      <div class="adj-desc">채권자불분명 사채이자 전액 불산입 | 건설자금이자 → 취득가액 산입 | 초과인출금 이자 불산입</div>
+      <div class="field-grid">
+        <div class="fg"><label>채권자불분명 사채이자</label><div class="iw"><input type="number" id="f-i-unknown" placeholder="0" oninput="mf(this);calcInterest()"><span class="u">원</span></div><div class="hint">전액 손금불산입 → 대표자 상여</div><div class="comma-display" id="cd-i-unknown"></div></div>
+        <div class="fg"><label>건설자금이자 (장기건설)</label><div class="iw"><input type="number" id="f-i-const" placeholder="0" oninput="mf(this);calcInterest()"><span class="u">원</span></div><div class="hint">→ 취득가액 산입(유보)</div><div class="comma-display" id="cd-i-const"></div></div>
+        <div class="fg"><label>업무무관 자산 관련 이자</label><div class="iw"><input type="number" id="f-i-nonbiz" placeholder="0" oninput="mf(this);calcInterest()"><span class="u">원</span></div><div class="hint">→ 손금불산입(기타사외유출)</div><div class="comma-display" id="cd-i-nonbiz"></div></div>
+      </div>
+      <div class="adj-auto" id="auto-interest"></div>
+    </div>
+
+    <!-- 기부금 -->
+    <div class="adj-panel" id="adjp-donation">
+      <div class="adj-desc">법정기부금 한도 = 소득×100% | 일반기부금 한도 = 소득×10% (또는 50%)</div>
+      <div class="field-grid">
+        <div class="fg"><label>법정·특례기부금 지출</label><div class="iw"><input type="number" id="f-don-legal" placeholder="0" oninput="mf(this);calcDon()"><span class="u">원</span></div><div class="hint">국가·지자체·공공기관 등</div><div class="comma-display" id="cd-don-legal"></div></div>
+        <div class="fg"><label>일반기부금 지출</label><div class="iw"><input type="number" id="f-don-gen" placeholder="0" oninput="mf(this);calcDon()"><span class="u">원</span></div><div class="hint">한도 소득×10%</div><div class="comma-display" id="cd-don-gen"></div></div>
+        <div class="fg"><label>기부금 한도 계산용 소득금액</label><div class="iw"><input type="number" id="f-don-income" placeholder="0" oninput="mf(this);calcDon()"><span class="u">원</span></div><div class="hint">기부금 손금산입 전 소득</div><div class="comma-display" id="cd-don-income"></div></div>
+      </div>
+      <div class="adj-auto" id="auto-don"></div>
+    </div>
+
+    <!-- 기타 익금산입 -->
+    <div class="adj-panel" id="adjp-addother">
+      <div class="adj-desc">직접 금액 입력 | 소득처분 유형도 함께 선택</div>
+      <div id="addother-list"></div>
+      <button class="add-btn" onclick="addAdjRow('add')">+ 익금산입·손금불산입 항목 추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- ③ 손금산입·익금불산입 -->
+<div class="calc-sec" id="cs3">
+  <div class="cs-head" onclick="toggleCS('cs3')">
+    <div class="cs-num">③</div>
+    <div class="cs-title">손금산입 · 익금불산입 (−)</div>
+    <div class="cs-sum" id="sum3"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body">
+    <div class="adj-desc">감가상각비 시인부족액(△유보), 전기 한도초과 추인 등</div>
+    <div id="subother-list"></div>
+    <button class="add-btn" onclick="addAdjRow('sub')">+ 손금산입·익금불산입 항목 추가</button>
+    <div class="adj-auto" id="auto-sub"></div>
+  </div>
+</div>
+
+<!-- ④ 각사업연도소득 (자동) -->
+<div class="calc-sec open" id="cs4">
+  <div class="cs-head" onclick="toggleCS('cs4')">
+    <div class="cs-num">④</div>
+    <div class="cs-title">각사업연도소득 (자동)</div>
+    <div class="cs-sum" id="sum4"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body open">
+    <div id="log4"></div>
+    <!-- 소득처분 요약 -->
+    <div style="margin-top:10px;font-size:11px;font-weight:700;color:var(--text3)">소득처분 요약</div>
+    <div class="disp-summary" id="disp-summary"></div>
+  </div>
+</div>
+
+<!-- ⑤ 이월결손금 -->
+<div class="calc-sec" id="cs5">
+  <div class="cs-head" onclick="toggleCS('cs5')">
+    <div class="cs-num">⑤</div>
+    <div class="cs-title">이월결손금 공제</div>
+    <div class="cs-sum" id="sum5"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body">
+    <div class="adj-desc">일반법인 80% 한도 | 중소기업 100% 공제 가능</div>
+    <div class="field-grid">
+      <div class="fg"><label>이월결손금 잔액</label><div class="iw"><input type="number" id="f-loss" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="hint">10년 이내 발생분</div><div class="comma-display" id="cd-loss"></div></div>
+    </div>
+    <div id="log5"></div>
+  </div>
+</div>
+
+<!-- ⑥ 과세표준 (자동) -->
+<div class="calc-sec open" id="cs6">
+  <div class="cs-head" onclick="toggleCS('cs6')">
+    <div class="cs-num">⑥</div>
+    <div class="cs-title">과세표준</div>
+    <div class="cs-sum" id="sum6"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body open">
+    <div id="log6"></div>
+  </div>
+</div>
+
+<!-- ⑦ 산출세액 (자동) -->
+<div class="calc-sec open" id="cs7">
+  <div class="cs-head" onclick="toggleCS('cs7')">
+    <div class="cs-num">⑦</div>
+    <div class="cs-title">산출세액 (2026 현행 세율)</div>
+    <div class="cs-sum" id="sum7"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body open">
+    <div class="adj-desc">2억↓ 10% | 2억~200억 20% | 200억~3,000억 22% | 3,000억↑ 25%</div>
+    <div id="log7"></div>
+  </div>
+</div>
+
+<!-- ⑧ 세액공제·감면 -->
+<div class="calc-sec" id="cs8">
+  <div class="cs-head" onclick="toggleCS('cs8')">
+    <div class="cs-num">⑧</div>
+    <div class="cs-title">세액공제 · 감면</div>
+    <div class="cs-sum" id="sum8"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body">
+    <div class="adj-tabs">
+      <div class="adj-tab on" onclick="switchAdj('credit-ftc',this)">외국납부</div>
+      <div class="adj-tab" onclick="switchAdj('credit-rd',this)">연구개발</div>
+      <div class="adj-tab" onclick="switchAdj('credit-other',this)">기타공제</div>
+    </div>
+
+    <!-- 외국납부세액공제 -->
+    <div class="adj-panel on" id="adjp-credit-ftc">
+      <div class="adj-desc">직접외납 + 간접외납 | 한도 = 산출세액 × 국외원천소득 / (과세표준 + 간접외납)</div>
+      <div class="field-grid trio">
+        <div class="fg"><label>외국에서 원천징수된 세액 (직접)</label><div class="iw"><input type="number" id="f-ftc-direct" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="comma-display" id="cd-ftc-direct"></div></div>
+        <div class="fg"><label>간접외납 (외국자회사 법인세 배부분)</label><div class="iw"><input type="number" id="f-ftc-indirect" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="hint">외국법인세 × 배당/세전소득</div><div class="comma-display" id="cd-ftc-indirect"></div></div>
+        <div class="fg"><label>국외원천소득</label><div class="iw"><input type="number" id="f-ftc-income" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="comma-display" id="cd-ftc-income"></div></div>
+      </div>
+      <div class="adj-auto" id="auto-ftc"></div>
+    </div>
+
+    <!-- 연구개발 세액공제 -->
+    <div class="adj-panel" id="adjp-credit-rd">
+      <div class="adj-desc">당기분 방식: 연구개발비×공제율 | 증가분 방식: 증가액×50%</div>
+      <div class="field-grid">
+        <div class="fg"><label>연구개발비 세액공제</label><div class="iw"><input type="number" id="f-rd" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="hint">일반: 중소 25%, 중견 8%, 대기업 2%</div><div class="comma-display" id="cd-rd"></div></div>
+      </div>
+    </div>
+
+    <!-- 기타 세액공제 -->
+    <div class="adj-panel" id="adjp-credit-other">
+      <div class="adj-desc">중간예납세액·원천징수세액 포함</div>
+      <div class="field-grid trio">
+        <div class="fg"><label>중간예납세액</label><div class="iw"><input type="number" id="f-prepay" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="comma-display" id="cd-prepay"></div></div>
+        <div class="fg"><label>원천징수세액</label><div class="iw"><input type="number" id="f-wht" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="comma-display" id="cd-wht"></div></div>
+        <div class="fg"><label>기타 세액공제·감면 (직접입력)</label><div class="iw"><input type="number" id="f-credit-etc" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="comma-display" id="cd-credit-etc"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ⑨ 차감납부세액 -->
+<div class="calc-sec" id="cs9">
+  <div class="cs-head" onclick="toggleCS('cs9')">
+    <div class="cs-num">⑨</div>
+    <div class="cs-title">차감납부세액</div>
+    <div class="cs-sum" id="sum9"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body">
+    <div id="log9"></div>
+  </div>
+</div>
+
+<!-- RESULT BAR -->
+<div class="result-bar">
+  <div class="rb-label">차감납부세액</div>
+  <div class="rb-val" id="rb-final">—</div>
+  <div class="rb-steps" id="rb-steps"></div>
+</div>
+
+</div><!-- end calc-col -->
+</div><!-- end main -->
+
+<style>
+.msg.bot.qa-answer{background:linear-gradient(135deg,#E8F0FA,#EEF4FF);border-left:3px solid var(--blue)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.typing{animation:blink 1.2s infinite;display:inline-block}
+.msg .tag-law{font-size:10px;background:var(--blue-l);color:var(--blue);padding:1px 6px;border-radius:5px;font-weight:600;margin-right:3px}
+.add-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
+.adj-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;background:white;border:1px solid var(--border);border-radius:var(--rsm);padding:7px 9px}
+.adj-row input[type=text]{flex:1;font-family:'Noto Sans KR',sans-serif;font-size:12px;border:1px solid var(--border);border-radius:var(--rsm);padding:6px 9px;background:var(--bg)}
+.adj-row input[type=number]{width:130px}
+.adj-row select{width:120px;font-size:11px}
+.del-btn{width:20px;height:20px;border-radius:50%;border:1px solid var(--border);background:var(--bg);cursor:pointer;font-size:13px;color:var(--text3);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.del-btn:hover{background:var(--red-l);border-color:var(--red);color:var(--red)}
+</style>
+
+<script>
+// ===== DICT =====
+const DICT = [
+  // 당기순이익
+  {name:'당기순이익', field:'f-ni', tags:['당기순이익','순이익','net income','당기순'], hint:'세전 당기순이익', disp:null},
+  {name:'법인세비용차감전순이익', field:'f-ni', tags:['법인세비용차감','법인세전순이익','세전'], hint:'법인세 차감 전 순이익', disp:null},
+
+  // 감가상각
+  {name:'감가상각 한도초과 (유보)', field:'f-adj-add', tags:['감가상각','감가','상각한도','시부인'], hint:'손금불산입(유보)', disp:'reserve', section:'cs2', adjType:'add'},
+  {name:'감가상각 시인부족 (△유보)', field:'f-adj-sub', tags:['시인부족','감가산입','감가△유보'], hint:'손금산입(△유보)', disp:'delta', section:'cs3', adjType:'sub'},
+
+  // 업무추진비
+  {name:'업무추진비 한도초과', field:'f-adj-add', tags:['업무추진비','접대비','한도초과'], hint:'손금불산입(기타사외유출)', disp:'out', section:'cs2', adjType:'add'},
+
+  // 대손충당금
+  {name:'대손충당금 한도초과 (유보)', field:'f-adj-add', tags:['대손충당금','충당금한도'], hint:'손금불산입(유보)', disp:'reserve', section:'cs2', adjType:'add'},
+  {name:'전기 대손충당금 한도초과 추인', field:'f-adj-sub', tags:['대손충당금추인','전기충당금'], hint:'손금산입(△유보)', disp:'delta', section:'cs3', adjType:'sub'},
+
+  // 업무용승용차
+  {name:'업무용승용차 감가 한도초과 (유보)', field:'f-adj-add', tags:['업무용승용차','승용차한도','차량한도'], hint:'감가비×업무비율 - 800만 (유보)', disp:'reserve', section:'cs2', adjType:'add'},
+  {name:'업무용승용차 비업무 사용분 (사외)', field:'f-adj-add', tags:['승용차비업무','차량비업무'], hint:'전체비용×(1-업무비율) (사외유출)', disp:'out', section:'cs2', adjType:'add'},
+
+  // 인정이자·가지급금
+  {name:'가지급금 인정이자 익금산입', field:'f-adj-add', tags:['가지급금','인정이자','가지급'], hint:'익금산입(상여/배당/기타)', disp:'out', section:'cs2', adjType:'add'},
+  {name:'인정이자 손금산입', field:'f-adj-sub', tags:['인정이자손금','가지급금손금'], hint:'손금산입(△유보)', disp:'delta', section:'cs3', adjType:'sub'},
+
+  // 지급이자
+  {name:'채권자불분명 사채이자 불산입', field:'f-i-unknown', tags:['채권자불분명','사채이자','불분명이자'], hint:'전액 손금불산입 → 대표자 상여', disp:'out'},
+  {name:'건설자금이자 불산입', field:'f-i-const', tags:['건설자금이자','건설이자'], hint:'취득가액 산입(유보)', disp:'reserve'},
+
+  // 기부금
+  {name:'기부금 한도초과 불산입', field:'f-adj-add', tags:['기부금한도','기부금불산입'], hint:'손금불산입(기타사외유출)', disp:'out', section:'cs2', adjType:'add'},
+
+  // 퇴직충당금
+  {name:'퇴직급여충당금 한도초과', field:'f-adj-add', tags:['퇴직충당금','퇴직급여충당금'], hint:'손금불산입(유보)', disp:'reserve', section:'cs2', adjType:'add'},
+
+  // 재고자산
+  {name:'재고자산 평가손익 부인', field:'f-adj-add', tags:['재고자산','재고평가'], hint:'인정 외 방법 → 손금불산입(유보)', disp:'reserve', section:'cs2', adjType:'add'},
+
+  // 의제배당
+  {name:'의제배당 익금산입', field:'f-adj-add', tags:['의제배당익금','자기주식처분이익'], hint:'익금산입(유보/기타)', disp:'reserve', section:'cs2', adjType:'add'},
+
+  // 고가매입
+  {name:'고가매입 손금불산입', field:'f-adj-add', tags:['고가매입','고가취득'], hint:'시가초과분 손금불산입(상여) + 손금산입(△유보) → 소득영향 없음', disp:'out', section:'cs2', adjType:'add'},
+
+  // 세액공제
+  {name:'간접외국납부세액 (익금산입)', field:'f-ftc-indirect', tags:['간접외납','간접외국납부'], hint:'익금산입 후 세액공제 한도 계산'},
+  {name:'외국납부세액공제', field:'f-ftc-direct', tags:['외국납부세액공제','직접외납','외국세액'], hint:'한도 = 산출세액 × 국외원천/과세표준'},
+  {name:'중간예납세액', field:'f-prepay', tags:['중간예납','중간납부'], hint:'6개월분 기납부세액'},
+  {name:'이월결손금', field:'f-loss', tags:['이월결손금','결손금'], hint:'일반 80%한도, 중소 100%'},
+];
+
+// ===== STATE =====
+let sugIdx = -1;
+let pendingAmbiguous = null;
+let addRowCount = 0;
+
+// ===== UTILS =====
+const fmt = n => Math.round(n).toLocaleString('ko-KR') + ' 원';
+const fmtN = n => Math.round(n).toLocaleString('ko-KR');
+const fmtKo = n => { const a=Math.abs(n); if(a>=1e8) return (n<0?'-':'')+(a/1e8).toFixed(1)+'억원'; if(a>=1e4) return (n<0?'-':'')+Math.round(a/10000)+'만원'; return fmt(n); };
+const v = id => parseFloat(document.getElementById(id)?.value) || 0;
+function lr(lbl, val, cls='') {
+  const cv = cls==='lm'?'color:var(--red)':cls==='lt'||cls==='lt'?'color:var(--blue);font-weight:700':'';
+  return `<div class="lrow ${cls}"><span class="ll">${lbl}</span><span class="lv" style="${cv}">${typeof val==='number'?fmt(val):val}</span></div>`;
+}
+function setAuto(id, text) {
+  const el = document.getElementById(id); if(!el) return;
+  if(text){el.innerHTML='⚡ '+text;el.classList.add('show');}
+  else el.classList.remove('show');
+}
+
+// ===== MARK FILLED =====
+function mf(el) {
+  const n = parseFloat(el.value)||0;
+  el.classList.toggle('filled', n!==0);
+  el.classList.toggle('jf', n!==0);
+  setTimeout(()=>el.classList.remove('jf'),400);
+  const sec = el.closest('.calc-sec');
+  if(sec) sec.classList.toggle('filled', [...sec.querySelectorAll('input')].some(i=>parseFloat(i.value)));
+  // 쉼표 표시
+  const cdId = 'cd-' + el.id.replace('f-','');
+  const cd = document.getElementById(cdId);
+  if(cd) cd.textContent = n ? fmtN(n)+' 원' : '';
+}
+
+// ===== SECTION TOGGLE =====
+function toggleCS(id) {
+  event.stopPropagation();
+  const s=document.getElementById(id);
+  s.classList.toggle('open');
+}
+
+// ===== ADJ TAB =====
+function switchAdj(key, el) {
+  const parent = el.closest('.cs-body') || el.closest('.adj-tabs').parentElement;
+  parent.querySelectorAll('.adj-tab').forEach(t=>t.classList.remove('on'));
+  parent.querySelectorAll('.adj-panel').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  const panel = document.getElementById('adjp-'+key);
+  if(panel) panel.classList.add('on');
+}
+
+// ===== ADD ADJ ROW =====
+function addAdjRow(type) {
+  addRowCount++;
+  const n = addRowCount;
+  const listId = type==='add' ? 'addother-list' : 'subother-list';
+  const el = document.createElement('div');
+  el.className = 'adj-row';
+  el.id = 'adjrow-'+n;
+  el.innerHTML = `
+    <input type="text" placeholder="항목명" id="adjname-${n}" style="flex:1;font-family:'Noto Sans KR',sans-serif;font-size:12px;border:1px solid var(--border);border-radius:var(--rsm);padding:6px 9px;background:var(--bg)">
+    <input type="number" id="adjamt-${n}" placeholder="금액" oninput="mf(this);calc()" style="width:130px;padding:7px 10px;font-family:var(--mono);font-size:12px;border:1px solid var(--border);border-radius:var(--rsm);background:var(--bg)">
+    <span style="font-size:10px;color:var(--text3)">원</span>
+    <select id="adjdisp-${n}" onchange="calc()" style="width:110px;font-size:11px;padding:6px 8px;border:1px solid var(--border);border-radius:var(--rsm);background:var(--bg)">
+      <option value="reserve">유보</option>
+      <option value="out">사외유출</option>
+      <option value="other">기타</option>
+    </select>
+    <button class="del-btn" onclick="document.getElementById('adjrow-${n}').remove();calc()">×</button>`;
+  el.dataset.type = type;
+  document.getElementById(listId).appendChild(el);
+}
+
+// ===== CHAT AUTOCOMPLETE =====
+function onChatInput(val) {
+  const box = document.getElementById('sug-box');
+  if(!val.trim()){box.classList.remove('show');sugIdx=-1;return;}
+  const q = val.toLowerCase().replace(/\s/g,'');
+  const matches = DICT.filter(d =>
+    d.tags.some(t=>t.toLowerCase().includes(q)||q.includes(t.toLowerCase())) ||
+    d.name.toLowerCase().replace(/\s/g,'').includes(q)
+  ).slice(0,8);
+  if(!matches.length){box.classList.remove('show');return;}
+  box.innerHTML = matches.map((m,i)=>`
+    <div class="sug-item" id="sug-${i}" onclick="applySug(${i})" onmouseover="sugIdx=${i};highlightSug()">
+      <span class="sug-tag blue">법인세</span>
+      <span class="sug-name">${m.name}</span>
+      <span class="sug-hint">${m.hint}</span>
+    </div>`).join('');
+  box.dataset.matches = JSON.stringify(matches);
+  box.classList.add('show');
+  sugIdx=-1;
+}
+
+function onChatKey(e) {
+  const box=document.getElementById('sug-box');
+  const items=box.querySelectorAll('.sug-item');
+  if(e.key==='ArrowDown'){e.preventDefault();sugIdx=Math.min(sugIdx+1,items.length-1);highlightSug();}
+  else if(e.key==='ArrowUp'){e.preventDefault();sugIdx=Math.max(sugIdx-1,0);highlightSug();}
+  else if(e.key==='Enter'){e.preventDefault();if(sugIdx>=0&&box.classList.contains('show'))applySug(sugIdx);else sendChat();}
+  else if(e.key==='Escape'){box.classList.remove('show');sugIdx=-1;}
+}
+function highlightSug(){document.querySelectorAll('.sug-item').forEach((el,i)=>el.classList.toggle('sel',i===sugIdx));}
+function applySug(idx) {
+  const box=document.getElementById('sug-box');
+  const matches=JSON.parse(box.dataset.matches||'[]');
+  const m=matches[idx];if(!m)return;
+  const input=document.getElementById('chat-input');
+  input.value=m.name+' ';input.focus();
+  box.classList.remove('show');
+  document.getElementById('input-hint').textContent=`💡 금액 입력: "${m.name} 300만원"`;
+}
+
+// ===== 질문 감지 =====
+function isQuestion(text) {
+  const q = text.trim();
+  // 질문 패턴: 끝이 물음표, 뭐야/뭐임/뭔가요/뭐예요/알려줘/설명/어떻게/방법/요건/차이/한도/계산/기준
+  return /[?？]$/.test(q) ||
+    /뭐야|뭐임|뭔가요|뭐예요|뭐죠|뭔지|뭔가|알려줘|설명해|어떻게|방법|요건|차이|한도는|기준|계산법|구조|종류|특징|예시|틀려|맞아|왜|언제|어디/.test(q) ||
+    q.length > 2 && !/\d/.test(q); // 숫자 없고 2글자 초과 → 질문 가능성
+}
+
+// ===== AI 세법 Q&A =====
+const API_URL = window.location.hostname === 'claude.ai' || window.location.protocol === 'blob:'
+  || window.location.hostname === 'localhost' || window.location.hostname === ''
+  ? 'https://api.anthropic.com/v1/messages'
+  : '/api/ask';
+
+async function askAI(question) {
+  const msgEl = document.createElement('div');
+  msgEl.className = 'msg bot';
+  msgEl.innerHTML = '<span class="typing">⏳ 세법 검색 중...</span>';
+  const hist = document.getElementById('chat-history');
+  hist.appendChild(msgEl);
+  hist.scrollTop = hist.scrollHeight;
+
+  try {
+    const resp = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `당신은 한국 세무사 시험 전문 강사입니다.
+법인세법·소득세법·부가가치세법·국세기본법을 2026년 현행 법령 기준으로 정확하게 설명합니다.
+
+응답 규칙:
+1. 핵심 개념을 먼저 1~2문장으로 요약
+2. 법령 근거 (예: 법인세법 제52조)를 간략히 언급
+3. 실무적 포인트나 시험 출제 포인트 강조 (⚠️ 표시)
+4. 계산식이 있으면 공식 형태로 명확하게
+5. 답변은 간결하게 (4~8줄 이내)
+6. HTML 태그 사용 가능: <strong>, <br>
+7. 어투: 친근하고 명확하게 (학생에게 설명하는 선생님 톤)
+8. 절대로 틀린 정보를 주지 않음. 불확실하면 "확인 필요"라고 명시`,
+        messages: [{ role: 'user', content: question }]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content?.map(c => c.text || '').join('') || '답변을 가져오지 못했어요.';
+    msgEl.innerHTML = text.replace(/\n/g, '<br>');
+  } catch (err) {
+    msgEl.innerHTML = '❌ 연결 오류가 발생했어요. 다시 시도해주세요.';
+  }
+  hist.scrollTop = hist.scrollHeight;
+}
+
+// ===== SEND CHAT =====
+function sendChat() {
+  const input=document.getElementById('chat-input');
+  const raw=input.value.trim();if(!raw)return;
+
+  if(pendingAmbiguous){
+    const choice=parseInt(raw)-1;
+    const {options,amount}=pendingAmbiguous;
+    if(choice>=0&&choice<options.length){
+      addMsg(raw,'user');input.value='';
+      const opt=options[choice];
+      fillField(opt.field,amount,opt.adjType,opt.name,opt.disp);
+      addMsg(`✅ <strong>${opt.name}</strong> <strong>${fmtKo(amount)}</strong> 입력했어요!<br><span class="warn">⚠️ ${opt.hint}</span>`,'bot');
+      calc();pendingAmbiguous=null;
+      document.getElementById('input-hint').textContent='💡 항목명 + 금액 입력';
+      return;
+    } else if(raw==='0'||raw==='취소'){
+      addMsg(raw,'user');addMsg('취소했어요.','bot');pendingAmbiguous=null;input.value='';return;
+    }
+  }
+
+  addMsg(raw,'user');input.value='';
+  document.getElementById('sug-box').classList.remove('show');
+
+  // 질문이면 AI Q&A
+  const hasAmount = /\d/.test(raw) && /(억|만|천|원|백만)/.test(raw);
+  if(!hasAmount && isQuestion(raw)) {
+    askAI(raw);
+    document.getElementById('input-hint').textContent='💡 질문 또는 금액 입력 모두 가능해요';
+    return;
+  }
+
+  const result=parseInput(raw);
+  if(result){
+    const{field,name,amount,adjType,disp,warn}=result;
+    fillField(field,amount,adjType,name,disp);
+    let txt=`✅ <strong>${name}</strong> <strong>${fmtKo(amount)}</strong> 입력했어요!`;
+    if(warn) txt+=`<br><span class="warn">⚠️ ${warn}</span>`;
+    addMsg(txt,'bot');
+    openSection(field);
+    calc();
+    // 모바일: 숫자 입력 후 잠시 뒤 계산기 탭으로 전환
+    if(window.innerWidth < 768){
+      setTimeout(()=>switchMobTab('calc'), 800);
+    }
+  } else if(isQuestion(raw)) {
+    // 숫자는 있지만 항목 매칭 실패해도 질문처럼 보이면 AI로
+    askAI(raw);
+  } else {
+    addMsg('❓ 항목을 찾지 못했어요.<br><strong>계산기:</strong> 감가상각 한도초과 300만<br><strong>질문:</strong> 특수관계인이 뭐야?','bot');
+  }
+  document.getElementById('input-hint').textContent='💡 금액 입력 또는 세법 질문 모두 가능';
+}
+
+function parseInput(text) {
+  const amtMatch = text.match(/([0-9,]+\.?[0-9]*)\s*(억|천만|백만|만원|만|천|백)?\s*원?/);
+  if(!amtMatch) return null;
+  let amount=parseFloat(amtMatch[1].replace(/,/g,''));
+  const unit=amtMatch[2]||'';
+  if(unit==='억') amount*=100000000;
+  else if(unit==='천만') amount*=10000000;
+  else if(unit==='백만') amount*=1000000;
+  else if(unit.startsWith('만')) amount*=10000;
+  else if(unit==='천') amount*=1000;
+  else if(unit==='백') amount*=100;
+
+  const q=text.replace(/[0-9,]+\.?[0-9]*/g,'').replace(/(억|천만|백만|만원|만|천|백|원)/g,'').toLowerCase().replace(/\s+/g,'');
+  let best=null,bestScore=0;
+  for(const d of DICT){
+    let score=0;
+    for(const tag of d.tags){
+      const t=tag.toLowerCase().replace(/\s/g,'');
+      if(q===t) score=Math.max(score,t.length*10);
+      else if(q.includes(t)) score=Math.max(score,t.length*5);
+      else if(t.includes(q)&&q.length>=2) score=Math.max(score,q.length*3);
+    }
+    const dn=d.name.toLowerCase().replace(/\s/g,'');
+    if(q===dn) score=Math.max(score,dn.length*8);
+    else if(dn.includes(q)&&q.length>=2) score=Math.max(score,q.length*4);
+    else if(q.includes(dn)&&dn.length>=2) score=Math.max(score,dn.length*4);
+    if(score>bestScore){bestScore=score;best=d;}
+  }
+  if(!best||bestScore<4) return null;
+
+  let warn=null;
+  if(best.name.includes('고가매입')) warn='고가매입은 손금불산입(상여)+손금산입(△유보)이 동시 발생 → 소득금액 영향 없음';
+  if(best.name.includes('건설자금')) warn='건설자금이자는 비용처리 불가 → 자산 취득가액에 산입';
+  return {field:best.field, name:best.name, amount, adjType:best.adjType, disp:best.disp, warn};
+}
+
+function fillField(fieldId, amount, adjType, name, disp) {
+  if(fieldId==='f-adj-add'||fieldId==='f-adj-sub'){
+    addAdjRow(adjType==='sub'?'sub':'add');
+    const n=addRowCount;
+    document.getElementById('adjname-'+n).value=name||'';
+    const amtEl=document.getElementById('adjamt-'+n);
+    amtEl.value=amount;mf(amtEl);
+    if(disp) document.getElementById('adjdisp-'+n).value=disp==='delta'?'reserve':disp;
+    return;
+  }
+  const el=document.getElementById(fieldId);
+  if(!el)return;
+  el.value=amount;mf(el);
+}
+
+function openSection(fieldId) {
+  const el=document.getElementById(fieldId);if(!el)return;
+  const sec=el.closest('.calc-sec');
+  if(sec&&!sec.classList.contains('open')){sec.classList.add('open');sec.querySelector('.cs-body').style.display='block';}
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function addMsg(text,type){
+  const hist=document.getElementById('chat-history');
+  const div=document.createElement('div');div.className='msg '+type;div.innerHTML=text;
+  hist.appendChild(div);hist.scrollTop=hist.scrollHeight;
+}
+
+// ===== SUB CALCULATORS =====
+function calcDepre(){
+  const cost=v('f-d-cost'),acc=v('f-d-acc'),res=v('f-d-res'),curr=v('f-d-curr'),rate=v('f-d-rate');
+  if(!cost||!rate){setAuto('auto-depre',null);return;}
+  const base=cost-acc+res;
+  const limit=base*rate;
+  const diff=curr-limit;
+  let txt='';
+  txt+=`세무상 기초가액 ${fmt(base)}<br>`;
+  txt+=`상각범위액 ${fmt(base)} × ${rate} = ${fmt(limit)}<br>`;
+  if(diff>0) txt+=`<strong>손금불산입(유보) ${fmt(diff)}</strong>`;
+  else if(diff<0) txt+=`<strong>시인부족 → 손금산입(△유보) ${fmt(-diff)}</strong> (선택 가능)`;
+  else txt+='세무조정 없음';
+  setAuto('auto-depre',txt);
+  calc();
+}
+
+function calcEntertain(){
+  const spent=v('f-e-spent'),noproof=v('f-e-noproof'),rev=v('f-e-rev'),rel=v('f-e-rel');
+  const sme=v('f-e-sme'),months=v('f-e-months')||12;
+  const basicLimit=(sme?36000000:12000000)*months/12;
+  const revLimit=(amt,isRel)=>{
+    const rates=isRel?[[10000000000,.0003],[50000000000,.0002],[Infinity,.00003]]:[[10000000000,.003],[50000000000,.002],[Infinity,.0003]];
+    let lim=0,prev=0;for(const[cap,rate]of rates){const sl=Math.min(amt,cap)-prev;if(sl<=0)break;lim+=sl*rate;prev=cap;}return lim;
+  };
+  const revLimitAmt=revLimit(rev,false)+revLimit(rel,true);
+  const totalLimit=basicLimit+revLimitAmt;
+  const validSpent=spent-noproof;
+  const over=Math.max(0,validSpent-totalLimit);
+  const total=noproof+over;
+  setAuto('auto-entertain',total>0?`손금불산입 ${fmt(total)} (증빙없음 ${fmt(noproof)} + 한도초과 ${fmt(over)}) → 기타사외유출`:total===0&&spent>0?'한도 이내 — 세무조정 없음':null);
+  calc();
+}
+
+function calcAllow(){
+  const end=v('f-al-end'),start=v('f-al-start'),loss=v('f-al-loss'),set=v('f-al-set'),prev=v('f-al-prev');
+  if(!end){setAuto('auto-allow',null);return;}
+  const rate=start>0?loss/start:0;
+  const limit=Math.max(rate,.01)*end;
+  const over=Math.max(0,set-limit);
+  const recover=Math.min(prev,limit);
+  let txt=`대손실적률 ${(rate*100).toFixed(4)}% | 한도 ${fmt(limit)}<br>`;
+  if(over>0) txt+=`<strong>한도초과 손금불산입(유보) ${fmt(over)}</strong>`;
+  else txt+='한도 이내';
+  if(recover>0) txt+=` | 전기 추인 손금산입(△유보) ${fmt(recover)}`;
+  setAuto('auto-allow',txt);
+  calc();
+}
+
+function calcCar(){
+  const total=v('f-c-total'),biz=v('f-c-biz'),depr=v('f-c-depr'),other=v('f-c-other');
+  const log=parseInt(document.getElementById('f-c-log')?.value)||1;
+  if(!total){setAuto('auto-car',null);return;}
+  const bizRate=log?biz/total:.5;
+  const nonBizRate=1-bizRate;
+  const totalCost=depr+other;
+  const bizDepr=depr*bizRate;
+  const deprOver=Math.max(0,bizDepr-8000000);
+  const nonBiz=totalCost*nonBizRate;
+  let txt=`업무비율 ${(bizRate*100).toFixed(1)}%<br>`;
+  if(deprOver>0) txt+=`감가 한도초과(유보) ${fmt(deprOver)} | `;
+  txt+=`비업무(사외유출) ${fmt(nonBiz)}`;
+  setAuto('auto-car',txt);
+  calc();
+}
+
+function calcInterest(){
+  const unk=v('f-i-unknown'),con=v('f-i-const'),nb=v('f-i-nonbiz');
+  let txt='';
+  if(unk>0) txt+=`채권자불분명 ${fmt(unk)} → 대표자상여 | `;
+  if(con>0) txt+=`건설자금이자 ${fmt(con)} → 취득가액 산입(유보) | `;
+  if(nb>0) txt+=`업무무관 ${fmt(nb)} → 기타사외유출`;
+  setAuto('auto-interest',txt||null);
+  calc();
+}
+
+function calcDon(){
+  const legal=v('f-don-legal'),gen=v('f-don-gen'),income=v('f-don-income');
+  if(!income){setAuto('auto-don','소득금액을 입력해야 한도를 계산할 수 있어요');return;}
+  const legalLimit=income;const genLimit=income*.10;
+  const legalOver=Math.max(0,legal-legalLimit);
+  const genOver=Math.max(0,gen-genLimit);
+  let txt='';
+  if(legal>0) txt+=`법정기부금 한도 ${fmt(legalLimit)} (${legalOver>0?'한도초과 '+fmt(legalOver):'이내'}) | `;
+  if(gen>0) txt+=`일반기부금 한도 ${fmt(genLimit)} (${genOver>0?'한도초과 '+fmt(genOver):'이내'})`;
+  setAuto('auto-don',txt||null);
+  calc();
+}
+
+// ===== CORP TAX RATE =====
+function corpTax(tb){
+  if(tb<=0) return 0;
+  let tax=0;
+  const b=[[200000000,.10],[20000000000,.20],[300000000000,.22],[Infinity,.25]];
+  let prev=0;
+  for(const[lim,rate]of b){
+    const slice=Math.min(tb,lim)-prev;
+    if(slice<=0)break;
+    tax+=slice*rate;
+    prev=lim;
+  }
+  return tax;
+}
+
+// ===== MAIN CALC =====
+function calc(){
+  const ni=v('f-ni');
+
+  // ② 익금산입·손금불산입 수집
+  let addTotal=0;
+  let dispMap={reserve:0,out:0,other:0};
+
+  // 감가상각
+  const dCost=v('f-d-cost'),dAcc=v('f-d-acc'),dRes=v('f-d-res'),dCurr=v('f-d-curr'),dRate=v('f-d-rate');
+  let depreAdj=0;
+  if(dCost&&dRate){const base=dCost-dAcc+dRes;const limit=base*dRate;depreAdj=dCurr-limit;}
+  if(depreAdj>0){addTotal+=depreAdj;dispMap.reserve+=depreAdj;}
+
+  // 업무추진비
+  const eSpent=v('f-e-spent'),eNoproof=v('f-e-noproof'),eRev=v('f-e-rev'),eRel=v('f-e-rel');
+  const eSme=v('f-e-sme'),eMon=v('f-e-months')||12;
+  const eBasic=(eSme?36000000:12000000)*eMon/12;
+  const eRevLim=(amt,r)=>{const rates=r?[[1e10,.0003],[5e10,.0002],[Infinity,.00003]]:[[1e10,.003],[5e10,.002],[Infinity,.0003]];let l=0,p=0;for(const[c,rt]of rates){const s=Math.min(amt,c)-p;if(s<=0)break;l+=s*rt;p=c;}return l;};
+  const eTotalLim=eBasic+eRevLim(eRev,false)+eRevLim(eRel,true);
+  const eOver=Math.max(0,(eSpent-eNoproof)-eTotalLim);
+  const eAdj=eNoproof+eOver;
+  if(eAdj>0){addTotal+=eAdj;dispMap.out+=eAdj;}
+
+  // 대손충당금
+  const alEnd=v('f-al-end'),alStart=v('f-al-start'),alLoss=v('f-al-loss'),alSet=v('f-al-set'),alPrev=v('f-al-prev');
+  const alRate=alStart>0?alLoss/alStart:0;
+  const alLimit=Math.max(alRate,.01)*alEnd;
+  const alOver=Math.max(0,alSet-alLimit);
+  if(alOver>0){addTotal+=alOver;dispMap.reserve+=alOver;}
+
+  // 업무용승용차
+  const cTotal=v('f-c-total'),cBiz=v('f-c-biz'),cDepr=v('f-c-depr'),cOther=v('f-c-other');
+  const cLog=parseInt(document.getElementById('f-c-log')?.value)||1;
+  let carDeprOver=0,carNonBiz=0;
+  if(cTotal>0){
+    const cBizRate=cLog?cBiz/cTotal:.5;
+    const cNonRate=1-cBizRate;
+    carDeprOver=Math.max(0,cDepr*cBizRate-8000000);
+    carNonBiz=(cDepr+cOther)*cNonRate;
+    if(carDeprOver>0){addTotal+=carDeprOver;dispMap.reserve+=carDeprOver;}
+    if(carNonBiz>0){addTotal+=carNonBiz;dispMap.out+=carNonBiz;}
+  }
+
+  // 지급이자
+  const iUnk=v('f-i-unknown'),iCon=v('f-i-const'),iNb=v('f-i-nonbiz');
+  if(iUnk>0){addTotal+=iUnk;dispMap.out+=iUnk;}
+  if(iCon>0){addTotal+=iCon;dispMap.reserve+=iCon;}
+  if(iNb>0){addTotal+=iNb;dispMap.out+=iNb;}
+
+  // 기부금
+  const donLegal=v('f-don-legal'),donGen=v('f-don-gen'),donIncome=v('f-don-income');
+  const donLegalOver=donIncome>0?Math.max(0,donLegal-donIncome):0;
+  const donGenOver=donIncome>0?Math.max(0,donGen-donIncome*.10):0;
+  if(donLegalOver>0){addTotal+=donLegalOver;dispMap.out+=donLegalOver;}
+  if(donGenOver>0){addTotal+=donGenOver;dispMap.out+=donGenOver;}
+
+  // 기타 익금산입 (직접입력)
+  document.querySelectorAll('#addother-list .adj-row').forEach(row=>{
+    const amt=parseFloat(row.querySelector('input[type=number]')?.value)||0;
+    const disp=row.querySelector('select')?.value||'reserve';
+    if(amt>0){addTotal+=amt;dispMap[disp]=(dispMap[disp]||0)+amt;}
+  });
+
+  // ③ 손금산입·익금불산입
+  let subTotal=0;
+  if(depreAdj<0){subTotal+=(-depreAdj);} // 시인부족 (선택사항이지만 여기선 자동 반영)
+  const alRecover=Math.min(alPrev,alLimit);
+  if(alRecover>0) subTotal+=alRecover;
+
+  document.querySelectorAll('#subother-list .adj-row').forEach(row=>{
+    const amt=parseFloat(row.querySelector('input[type=number]')?.value)||0;
+    if(amt>0) subTotal+=amt;
+  });
+
+  document.getElementById('sum2').textContent = addTotal>0 ? '+'+fmt(addTotal) : '';
+  document.getElementById('sum3').textContent = subTotal>0 ? '-'+fmt(subTotal) : '';
+
+  // ④ 각사업연도소득
+  const income = ni + addTotal - subTotal;
+  let l4 = lr('당기순이익', ni) + lr('(+) 익금산입·손금불산입', addTotal, addTotal>0?'':'lm') + lr('(-) 손금산입·익금불산입', -subTotal, 'lm') + lr('각사업연도소득', income, 'lt');
+  document.getElementById('log4').innerHTML = l4;
+  document.getElementById('sum4').textContent = fmt(income);
+
+  // 소득처분 요약
+  const ds = document.getElementById('disp-summary');
+  ds.innerHTML = '';
+  if(dispMap.reserve>0) ds.innerHTML += `<div class="disp-item di-reserve">유보 +${fmtKo(dispMap.reserve)}</div>`;
+  if(dispMap.out>0) ds.innerHTML += `<div class="disp-item di-out">사외유출 ${fmtKo(dispMap.out)}</div>`;
+  if(dispMap.other>0) ds.innerHTML += `<div class="disp-item" style="background:var(--bg);color:var(--text3)">기타 ${fmtKo(dispMap.other)}</div>`;
+
+  // ⑤ 이월결손금
+  const isSme = document.getElementById('f-type')?.value === 'sme';
+  const loss = v('f-loss');
+  const lossLimit = isSme ? loss : Math.min(loss, income * 0.8);
+  const afterLoss = Math.max(0, income - lossLimit);
+  let l5 = '';
+  if(loss>0){
+    l5 = lr('각사업연도소득',income)+lr('이월결손금 공제 ('+(isSme?'100%':'80%한도')+')',-lossLimit,'lm')+lr('이월결손금 공제 후',afterLoss,'lt');
+  }
+  document.getElementById('log5').innerHTML = l5 || lr('이월결손금 없음','');
+  document.getElementById('sum5').textContent = lossLimit>0 ? '-'+fmt(lossLimit) : '';
+
+  // ⑥ 과세표준
+  const taxBase = Math.max(0, afterLoss);
+  document.getElementById('log6').innerHTML = lr('과세표준',taxBase,'lt');
+  document.getElementById('sum6').textContent = fmt(taxBase);
+
+  // ⑦ 산출세액
+  const bt = corpTax(taxBase);
+  let l7 = '';
+  const brackets=[[200000000,'10%'],[20000000000,'20%'],[300000000000,'22%'],[Infinity,'25%']];
+  let prev2=0;
+  for(const[lim,rate] of brackets){
+    if(taxBase<=0) break;
+    const slice=Math.min(taxBase,lim)-prev2;
+    if(slice>0) l7+=lr(`${rate} 구간 (${fmt(prev2)}~${lim===Infinity?'초과':fmt(lim)})`,slice);
+    prev2=lim;
+    if(taxBase<=lim) break;
+  }
+  l7 += lr('산출세액', bt, 'lt');
+  document.getElementById('log7').innerHTML = l7;
+  document.getElementById('sum7').textContent = fmt(bt);
+
+  // ⑧ 세액공제
+  const ftcDirect=v('f-ftc-direct'),ftcIndirect=v('f-ftc-indirect'),ftcIncome=v('f-ftc-income');
+  let ftcCredit=0;
+  if(ftcDirect||ftcIndirect){
+    const ftcLimit=bt*(ftcIncome/(taxBase+ftcIndirect||1));
+    ftcCredit=Math.min(ftcDirect+ftcIndirect,ftcLimit);
+    setAuto('auto-ftc',`직접외납 ${fmt(ftcDirect)} + 간접외납 ${fmt(ftcIndirect)} | 한도 ${fmt(ftcLimit)} | 공제 ${fmt(ftcCredit)}`);
+  } else {
+    setAuto('auto-ftc',null);
+  }
+  const rd=v('f-rd'),prepay=v('f-prepay'),wht=v('f-wht'),creditEtc=v('f-credit-etc');
+  const totalCredit=ftcCredit+rd+prepay+wht+creditEtc;
+  document.getElementById('sum8').textContent = totalCredit>0 ? '-'+fmt(totalCredit) : '';
+
+  // ⑨ 차감납부세액
+  const decided=Math.max(0,bt-totalCredit);
+  const final2=decided;
+  const l9=lr('산출세액',bt)+lr('세액공제·감면',-totalCredit,'lm')+lr('결정세액',decided,'lt');
+  document.getElementById('log9').innerHTML=l9;
+  document.getElementById('sum9').textContent=fmt(decided);
+
+  // RESULT BAR
+  document.getElementById('rb-final').textContent=fmt(final2);
+  document.getElementById('rb-steps').innerHTML=
+    `<div class="rb-step"><span>각사업연도소득</span> ${fmtKo(income)}</div>`+
+    `<div class="rb-step"><span>→ 과세표준</span> ${fmtKo(taxBase)}</div>`+
+    `<div class="rb-step"><span>→ 산출세액</span> ${fmtKo(bt)}</div>`+
+    `<div class="rb-step"><span>→ 결정세액</span> ${fmtKo(decided)}</div>`;
+}
+
+// ===== INIT =====
+calc();
+
+// ===== 모바일 탭 전환 =====
+function switchMobTab(tab){
+  document.querySelectorAll('.mob-tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===tab));
+  const chatCol = document.querySelector('.chat-col');
+  const calcCol = document.getElementById('calc-col');
+  if(tab==='chat'){
+    chatCol.classList.add('mob-active');
+    calcCol.classList.remove('mob-active');
+  } else {
+    chatCol.classList.remove('mob-active');
+    calcCol.classList.add('mob-active');
+  }
+}
+
+// 모바일 초기화: 채팅 탭 먼저 표시
+(function initMobile(){
+  if(window.innerWidth < 768){
+    switchMobTab('chat');
+  }
+})();
+
+// 채팅에서 메시지 보내면 모바일 계산기 탭으로 이동 (선택사항)
+// — sendChat() 함수 끝에 훅을 걸어 계산 결과 탭으로 자동 전환
+const _origSendChat = typeof sendChat === 'function' ? sendChat : null;
+</script>
+</body>
+</html>

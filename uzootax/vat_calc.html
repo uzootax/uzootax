@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우주세법 — 부가세 계산기</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+:root {
+  --bg:#F5F0F0; --card:#fff; --border:#E2D9D9;
+  --orange:#B85C00; --orange-l:#FEF3E8; --orange-m:#F6B87A;
+  --yellow:#F59E0B; --yellow-l:#FFFBEB; --yellow-b:#FDE68A;
+  --red:#C0392B; --red-l:#FDECEA;
+  --green:#1E6B3C; --green-l:#E8F5EE;
+  --blue:#1A5C9E; --blue-l:#E8F0FA;
+  --text:#111827; --text2:#374151; --text3:#9CA3AF;
+  --mono:'JetBrains Mono',monospace; --r:12px; --rsm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column}
+
+.hd{background:var(--card);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:8px;flex-shrink:0;height:52px}
+.logo{font-family:var(--mono);font-size:13px;font-weight:500;padding-right:16px;border-right:1px solid var(--border);margin-right:4px}
+.logo em{color:var(--orange);font-style:normal}
+.menu-seg{display:flex;gap:0;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:3px}
+.mseg{padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;border-radius:6px;color:var(--text3);transition:all .15s;white-space:nowrap}
+.mseg.on{background:var(--orange);color:white}
+.hright{margin-left:auto;font-size:11px;color:var(--text3);font-family:var(--mono)}
+
+.main{display:flex;flex:1;overflow:hidden}
+
+/* CHAT */
+.chat-col{width:360px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--card)}
+.chat-history{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:92%;padding:9px 13px;border-radius:10px;font-size:13px;line-height:1.7}
+.msg.bot{background:var(--orange-l);color:#7A3B00;align-self:flex-start;border-bottom-left-radius:3px}
+.msg.user{background:var(--orange);color:white;align-self:flex-end;border-bottom-right-radius:3px}
+.msg.sys{background:var(--bg);color:var(--text3);font-size:11px;align-self:center;border-radius:20px;padding:4px 12px}
+.msg strong{font-weight:700}
+.msg .warn{color:var(--red);font-size:11px;display:block;margin-top:3px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.sug-box{position:absolute;bottom:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:var(--rsm);box-shadow:0 -4px 20px rgba(0,0,0,.1);max-height:200px;overflow-y:auto;display:none;z-index:100}
+.sug-box.show{display:block}
+.sug-item{padding:8px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bg);transition:background .1s}
+.sug-item:hover,.sug-item.sel{background:var(--orange-l)}
+.sug-tag{font-size:10px;padding:1px 6px;border-radius:6px;flex-shrink:0;font-weight:600;background:var(--orange-l);color:var(--orange)}
+.sug-name{flex:1;font-weight:500}
+.sug-hint{font-size:10px;color:var(--text3)}
+
+.chat-input-wrap{padding:10px 12px;border-top:1px solid var(--border)}
+.autocomplete{position:relative}
+.chat-input-row{display:flex;gap:8px;align-items:center}
+.chat-input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:22px;font-family:'Noto Sans KR',sans-serif;font-size:13px;background:var(--bg);outline:none;transition:all .15s}
+.chat-input:focus{border-color:var(--orange);background:white;box-shadow:0 0 0 3px var(--orange-l)}
+.send-btn{width:38px;height:38px;border-radius:50%;background:var(--orange);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.send-btn:hover{background:#8A4200}
+.send-btn svg{width:16px;height:16px;fill:white}
+.input-hint{font-size:10px;color:var(--text3);margin-top:5px;padding:0 4px}
+
+/* CALC */
+.calc-col{flex:1;overflow-y:auto;padding:16px 20px}
+.calc-sec{background:var(--card);border:2px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden;transition:border-color .2s,box-shadow .2s}
+.calc-sec.active{border-color:var(--yellow);box-shadow:0 0 0 3px var(--yellow-b)}
+.calc-sec.filled{border-color:var(--orange-m)}
+.cs-head{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none}
+.cs-head:hover{background:var(--bg)}
+.cs-num{font-family:var(--mono);font-size:11px;width:22px;height:22px;border-radius:50%;background:var(--text3);color:white;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.calc-sec.filled .cs-num{background:var(--orange)}
+.calc-sec.active .cs-num{background:var(--yellow);color:var(--text)}
+.cs-title{font-size:13px;font-weight:600;flex:1}
+.cs-sum{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--orange)}
+.cs-arr{font-size:10px;color:var(--text3);transition:transform .2s}
+.calc-sec.open .cs-arr{transform:rotate(180deg)}
+.cs-body{display:none;padding:0 16px 14px}
+.calc-sec.open .cs-body{display:block}
+
+/* 탭 */
+.vtabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.vtab{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;background:var(--bg);color:var(--text3);border:1px solid var(--border);transition:all .12s}
+.vtab:hover{color:var(--text2)}
+.vtab.on{background:var(--orange);color:white;border-color:var(--orange)}
+.vpanel{display:none}
+.vpanel.on{display:block}
+.vdesc{font-size:11px;color:var(--text3);margin-bottom:8px;padding:6px 10px;background:var(--bg);border-radius:var(--rsm);line-height:1.6}
+.vauto{font-size:11px;color:var(--orange);background:var(--orange-l);border-radius:var(--rsm);padding:6px 10px;margin-top:6px;display:none;line-height:1.7}
+.vauto.show{display:block}
+
+/* FORM */
+.fg-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.fg-grid.trio{grid-template-columns:1fr 1fr 1fr}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:11px;font-weight:600;color:var(--text2)}
+.fg .hint{font-size:10px;color:var(--text3)}
+.iw{position:relative}
+.iw .u{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text3);pointer-events:none}
+input[type=number],select{padding:7px 10px;border:1px solid var(--border);border-radius:var(--rsm);font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg);width:100%;transition:all .15s}
+input:focus,select:focus{outline:none;border-color:var(--orange);background:white}
+input.filled{border-color:var(--orange-m);background:white}
+.comma-display{font-size:10px;color:var(--orange);font-family:var(--mono);font-weight:500;min-height:14px}
+@keyframes fp{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
+input.jf{animation:fp .3s ease}
+
+/* LOG */
+.lrow{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--bg);font-size:12px}
+.lrow:last-child{border-bottom:none}
+.lrow .ll{color:var(--text3)}
+.lrow .lv{font-family:var(--mono);font-weight:500}
+.lrow.lm .lv{color:var(--red)}
+.lrow.lt{border-top:1.5px solid var(--border);margin-top:4px;padding-top:7px}
+.lrow.lt .ll,.lrow.lt .lv{color:var(--orange);font-weight:700}
+.lrow.sub .ll,.lrow.sub .lv{opacity:.65;font-size:11px}
+
+/* RESULT BAR */
+.result-bar{position:sticky;bottom:0;background:linear-gradient(135deg,#8A4200,#B85C00);color:white;padding:12px 18px;border-radius:var(--r) var(--r) 0 0;margin:0 -20px -16px;box-shadow:0 -4px 20px rgba(0,0,0,.1)}
+.rb-label{font-size:11px;opacity:.7}
+.rb-val{font-family:var(--mono);font-size:20px;font-weight:500}
+.rb-steps{display:flex;gap:12px;margin-top:6px;font-size:11px;opacity:.8;flex-wrap:wrap}
+.rb-step span{opacity:.7}
+
+/* 판단 배지 */
+.judge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:6px;font-weight:600;margin-top:4px}
+.judge.tax{background:#FDE8E8;color:var(--red)}
+.judge.free{background:var(--green-l);color:var(--green)}
+.judge.warn{background:var(--yellow-l);color:#92400E}
+
+/* ===== 모바일 탭 바 ===== */
+.mobile-tabs{display:none;background:var(--card);border-bottom:2px solid var(--border);flex-shrink:0}
+.mob-tab{flex:1;padding:11px 8px;text-align:center;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.mob-tab.on{color:var(--orange);border-bottom-color:var(--orange)}
+
+/* ===== 반응형: 모바일 (768px 미만) ===== */
+@media(max-width:767px){
+  .mobile-tabs{display:flex}
+  .hd{padding:0 10px;height:46px;gap:6px}
+  .logo{font-size:12px;padding-right:10px}
+  .mseg{padding:4px 9px;font-size:11px}
+  .hright{display:none}
+  .main{flex-direction:column}
+  .chat-col{width:100%;border-right:none;display:none;flex:1;min-height:0}
+  .chat-col.mob-active{display:flex}
+  .calc-col{display:none;flex:1;padding:12px;overflow-y:auto}
+  .calc-col.mob-active{display:block}
+  .result-bar{margin:0 -12px -12px;border-radius:0;padding:10px 14px}
+  .rb-val{font-size:17px}
+  .rb-steps{gap:6px;font-size:10px}
+  .fg-grid.trio{grid-template-columns:1fr 1fr}
+  .vtabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+  .vtab{flex-shrink:0}
+  .input-hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chat-input{font-size:12px}
+}
+
+/* ===== 반응형: 태블릿 ===== */
+@media(min-width:768px) and (max-width:1023px){
+  .chat-col{width:300px}
+  .hright{display:none}
+}
+
+/* ===== 데스크톱: 항상 양쪽 패널 ===== */
+@media(min-width:768px){
+  .mobile-tabs{display:none!important}
+  .chat-col{display:flex!important}
+  .calc-col{display:block!important}
+}
+</style>
+</head>
+<body>
+
+<header class="hd">
+  <div class="logo">우주<em>세법</em></div>
+  <div class="menu-seg">
+    <div class="mseg" onclick="location.href='tax_chat_calc.html'">소득세</div>
+    <div class="mseg" onclick="location.href='corp_tax_calc.html'">법인세</div>
+    <div class="mseg on">부가세</div>
+  </div>
+  <div class="hright" id="hright-info"></div>
+</header>
+
+<!-- 모바일 탭 바 -->
+<div class="mobile-tabs" id="mobile-tabs">
+  <div class="mob-tab on" data-tab="chat" onclick="switchMobTab('chat')">💬 채팅</div>
+  <div class="mob-tab" data-tab="calc" onclick="switchMobTab('calc')">🧮 계산기</div>
+</div>
+
+<div class="main">
+<div class="chat-col">
+  <div class="chat-history" id="chat-history">
+    <div class="msg bot">부가세 계산기 + 세법 Q&A예요 😊<br><strong>계산:</strong> 과세매출 2억, 의제매입 5천만, 면세공급 3천만<br><strong>질문:</strong> 공급시기가 뭐야? 간이과세자 요건? 의제매입세액 계산법?</div>
+    <div class="msg sys">부가세 모드 · AI Q&A 활성화</div>
+  </div>
+  <div class="chat-input-wrap">
+    <div class="autocomplete">
+      <div class="sug-box" id="sug-box"></div>
+    </div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chat-input" type="text"
+        placeholder="금액 입력 또는 질문... (예: 공급시기가 뭐야?)"
+        oninput="onChatInput(this.value)"
+        onkeydown="onChatKey(event)"
+        autocomplete="off">
+      <button class="send-btn" onclick="sendChat()">
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+    <div class="input-hint" id="input-hint">💡 금액 입력 또는 세법 질문 모두 가능</div>
+  </div>
+</div>
+
+<!-- ===== CALCULATOR ===== -->
+<div class="calc-col" id="calc-col">
+
+<!-- ① 과세표준 -->
+<div class="calc-sec open" id="cs1">
+  <div class="cs-head" onclick="toggleCS('cs1')">
+    <div class="cs-num">①</div>
+    <div class="cs-title">과세표준 (공급가액)</div>
+    <div class="cs-sum" id="sum1"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body open">
+    <div class="vtabs">
+      <div class="vtab on" onclick="switchV('supply',this)">일반공급</div>
+      <div class="vtab" onclick="switchV('installment',this)">장기할부·완성도</div>
+      <div class="vtab" onclick="switchV('advance',this)">선발행 특례</div>
+      <div class="vtab" onclick="switchV('rental',this)">부동산임대</div>
+    </div>
+
+    <!-- 일반공급 -->
+    <div class="vpanel on" id="vp-supply">
+      <div class="vdesc">재화·용역의 공급 | 공급시기 = 재화 인도일 또는 용역 완료일</div>
+      <div class="fg-grid trio">
+        <div class="fg"><label>과세 공급가액</label><div class="iw"><input type="number" id="f-tax-sales" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="comma-display" id="cd-tax-sales"></div></div>
+        <div class="fg"><label>면세 공급가액</label><div class="iw"><input type="number" id="f-free-sales" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="comma-display" id="cd-free-sales"></div></div>
+        <div class="fg"><label>영세율 공급가액 (0%)</label><div class="iw"><input type="number" id="f-zero-sales" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="comma-display" id="cd-zero-sales"></div></div>
+      </div>
+    </div>
+
+    <!-- 장기할부·완성도 -->
+    <div class="vpanel" id="vp-installment">
+      <div class="vdesc">장기할부: 2회↑ AND 1년 이상 → 대금 받기로 한 때 | 완성도기준: 기성고에 따라 받기로 한 때</div>
+      <div class="fg-grid">
+        <div class="fg">
+          <label>거래 유형</label>
+          <select id="f-inst-type" onchange="calcInstallment()">
+            <option value="">선택하세요</option>
+            <option value="long">장기할부 (2회↑, 1년이상)</option>
+            <option value="normal">일반할부 (조건 미충족)</option>
+            <option value="progress">완성도기준지급</option>
+          </select>
+        </div>
+        <div class="fg"><label>총 공급가액</label><div class="iw"><input type="number" id="f-inst-total" placeholder="0" oninput="mf(this);calcInstallment()"><span class="u">원</span></div><div class="comma-display" id="cd-inst-total"></div></div>
+        <div class="fg"><label>회차 수</label><input type="number" id="f-inst-times" placeholder="0" min="1" oninput="calcInstallment()"><div class="hint">장기할부 최소 2회</div></div>
+        <div class="fg"><label>기간 (개월)</label><input type="number" id="f-inst-months" placeholder="0" oninput="calcInstallment()"><div class="hint">장기할부 최소 12개월</div></div>
+      </div>
+      <div class="vauto" id="auto-inst"></div>
+    </div>
+
+    <!-- 선발행 특례 -->
+    <div class="vpanel" id="vp-advance">
+      <div class="vdesc">세금계산서 선발행 후 공급 → 조건 충족 시 발행일 = 공급시기<br>조건: ① 발행 후 7일 이내 대가 수령, 또는 ② 같은 과세기간 내 공급 완료</div>
+      <div class="fg-grid">
+        <div class="fg">
+          <label>선발행일</label>
+          <input type="date" id="f-adv-issue" oninput="calcAdvance()">
+        </div>
+        <div class="fg">
+          <label>실제 공급일</label>
+          <input type="date" id="f-adv-supply" oninput="calcAdvance()">
+        </div>
+        <div class="fg">
+          <label>대가 수령일</label>
+          <input type="date" id="f-adv-payment" oninput="calcAdvance()">
+        </div>
+        <div class="fg">
+          <label>과세기간</label>
+          <select id="f-adv-period" onchange="calcAdvance()">
+            <option value="1">1기 (1.1~6.30)</option>
+            <option value="2">2기 (7.1~12.31)</option>
+          </select>
+        </div>
+      </div>
+      <div class="vauto" id="auto-adv"></div>
+    </div>
+
+    <!-- 부동산임대 -->
+    <div class="vpanel" id="vp-rental">
+      <div class="vdesc">임대료 + 간주임대료(보증금 × 정기예금이자율 × 임대일수/365)</div>
+      <div class="fg-grid trio">
+        <div class="fg"><label>임대료 수령액 (원)</label><div class="iw"><input type="number" id="f-rent-income" placeholder="0" oninput="mf(this);calcRental()"><span class="u">원</span></div><div class="comma-display" id="cd-rent-income"></div></div>
+        <div class="fg"><label>보증금 (원)</label><div class="iw"><input type="number" id="f-rent-deposit" placeholder="0" oninput="mf(this);calcRental()"><span class="u">원</span></div><div class="comma-display" id="cd-rent-deposit"></div></div>
+        <div class="fg"><label>정기예금이자율 (%)</label><input type="number" id="f-rent-rate" placeholder="2.9" step="0.1" value="2.9" oninput="calcRental()"><div class="hint">국세청 고시 (2024: 2.9%)</div></div>
+        <div class="fg"><label>임대기간 (일수)</label><input type="number" id="f-rent-days" placeholder="181" oninput="calcRental()"></div>
+        <div class="fg"><label>건물 기준시가 (원)</label><div class="iw"><input type="number" id="f-rent-bldg" placeholder="0" oninput="mf(this);calcRental()"><span class="u">원</span></div><div class="comma-display" id="cd-rent-bldg"></div></div>
+        <div class="fg"><label>토지 기준시가 (원)</label><div class="iw"><input type="number" id="f-rent-land" placeholder="0" oninput="mf(this);calcRental()"><span class="u">원</span></div><div class="comma-display" id="cd-rent-land"></div></div>
+      </div>
+      <div class="vauto" id="auto-rental"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ② 매출세액 -->
+<div class="calc-sec open" id="cs2">
+  <div class="cs-head" onclick="toggleCS('cs2')">
+    <div class="cs-num">②</div>
+    <div class="cs-title">매출세액</div>
+    <div class="cs-sum" id="sum2"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body open">
+    <div id="log2"></div>
+  </div>
+</div>
+
+<!-- ③ 매입세액 공제 -->
+<div class="calc-sec open" id="cs3">
+  <div class="cs-head" onclick="toggleCS('cs3')">
+    <div class="cs-num">③</div>
+    <div class="cs-title">매입세액 공제</div>
+    <div class="cs-sum" id="sum3"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body open">
+    <div class="vtabs">
+      <div class="vtab on" onclick="switchV('input-gen',this)">일반매입</div>
+      <div class="vtab" onclick="switchV('input-common',this)">공통매입세액</div>
+      <div class="vtab" onclick="switchV('input-deemed',this)">의제매입세액</div>
+      <div class="vtab" onclick="switchV('input-bad',this)">대손세액</div>
+    </div>
+
+    <!-- 일반매입 -->
+    <div class="vpanel on" id="vp-input-gen">
+      <div class="vdesc">세금계산서 수취분 | 불공제: 개소세 승용차·접대비·면세 관련·사업무관</div>
+      <div class="fg-grid">
+        <div class="fg"><label>세금계산서 매입세액 (공제분)</label><div class="iw"><input type="number" id="f-input-tax" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="comma-display" id="cd-input-tax"></div></div>
+        <div class="fg"><label>불공제 매입세액</label><div class="iw"><input type="number" id="f-input-notax" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="hint">승용차·접대비·토지관련 등</div><div class="comma-display" id="cd-input-notax"></div></div>
+        <div class="fg"><label>신용카드 매입세액 (사업용)</label><div class="iw"><input type="number" id="f-input-card" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="comma-display" id="cd-input-card"></div></div>
+        <div class="fg"><label>수입세금계산서 매입세액</label><div class="iw"><input type="number" id="f-input-import" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="comma-display" id="cd-input-import"></div></div>
+      </div>
+    </div>
+
+    <!-- 공통매입세액 안분 -->
+    <div class="vpanel" id="vp-input-common">
+      <div class="vdesc">과세·면세 겸영 시 안분 | 면세비율 = 면세공급/(과세+면세공급) | 재계산: 건물 5%·기타 25% 체감률</div>
+      <div class="fg-grid trio">
+        <div class="fg"><label>공통매입세액</label><div class="iw"><input type="number" id="f-common-tax" placeholder="0" oninput="mf(this);calcCommon()"><span class="u">원</span></div><div class="comma-display" id="cd-common-tax"></div></div>
+        <div class="fg"><label>과세 공급가액</label><div class="iw"><input type="number" id="f-common-taxable" placeholder="0" oninput="mf(this);calcCommon()"><span class="u">원</span></div><div class="comma-display" id="cd-common-taxable"></div></div>
+        <div class="fg"><label>면세 공급가액</label><div class="iw"><input type="number" id="f-common-exempt" placeholder="0" oninput="mf(this);calcCommon()"><span class="u">원</span></div><div class="comma-display" id="cd-common-exempt"></div></div>
+      </div>
+      <!-- 재계산 -->
+      <div style="font-size:11px;font-weight:700;color:var(--text3);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.06em">공통매입세액 재계산 (해당 시)</div>
+      <div class="fg-grid trio">
+        <div class="fg"><label>취득가액 (원)</label><div class="iw"><input type="number" id="f-recalc-cost" placeholder="0" oninput="mf(this);calcCommon()"><span class="u">원</span></div><div class="comma-display" id="cd-recalc-cost"></div></div>
+        <div class="fg"><label>자산 종류</label><select id="f-recalc-type" onchange="calcCommon()"><option value="0.05">건물 (체감 5%)</option><option value="0.25">기타 (체감 25%)</option></select></div>
+        <div class="fg"><label>경과 과세기간 수</label><input type="number" id="f-recalc-period" placeholder="0" min="0" oninput="calcCommon()"><div class="hint">취득 과세기간 포함</div></div>
+        <div class="fg"><label>당기 면세비율 (%)</label><input type="number" id="f-recalc-curr" placeholder="0" step="0.01" oninput="calcCommon()"></div>
+        <div class="fg"><label>직전 면세비율 (%)</label><input type="number" id="f-recalc-prev" placeholder="0" step="0.01" oninput="calcCommon()"><div class="hint">기준점: 직전 재계산 시점</div></div>
+      </div>
+      <div class="vauto" id="auto-common"></div>
+    </div>
+
+    <!-- 의제매입세액 -->
+    <div class="vpanel" id="vp-input-deemed">
+      <div class="vdesc">면세농산물 구입 후 과세 제조·음식점에 사용 시 공제 | 간이과세자 불가 ⚠️</div>
+      <div class="fg-grid">
+        <div class="fg"><label>면세농산물 매입가액</label><div class="iw"><input type="number" id="f-deemed-cost" placeholder="0" oninput="mf(this);calcDeemed()"><span class="u">원</span></div><div class="comma-display" id="cd-deemed-cost"></div></div>
+        <div class="fg">
+          <label>공제율</label>
+          <select id="f-deemed-rate" onchange="calcDeemed()">
+            <option value="9/109">9/109 (개인 제조업)</option>
+            <option value="8/108">8/108 (중소제조업 과표 2억↓)</option>
+            <option value="6/106">6/106 (중소제조업·음식점 4억↓)</option>
+            <option value="4/104">4/104 (음식점 개인 2억↓)</option>
+            <option value="2/102">2/102 (음식점 법인·개인 2억↑)</option>
+          </select>
+        </div>
+        <div class="fg"><label>과세기간 과세표준 (한도용)</label><div class="iw"><input type="number" id="f-deemed-base" placeholder="0" oninput="mf(this);calcDeemed()"><span class="u">원</span></div><div class="hint">신규사업자: 당기 실지비율 적용</div><div class="comma-display" id="cd-deemed-base"></div></div>
+        <div class="fg">
+          <label>사업자 유형</label>
+          <select id="f-deemed-type" onchange="calcDeemed()">
+            <option value="general">일반과세자</option>
+            <option value="new">신규사업자</option>
+          </select>
+        </div>
+      </div>
+      <div class="vauto" id="auto-deemed"></div>
+    </div>
+
+    <!-- 대손세액 -->
+    <div class="vpanel" id="vp-input-bad">
+      <div class="vdesc">확정된 대손 → 매출세액 차감 | 매입자 변제 시 → 매입세액 가산 ⚠️</div>
+      <div class="fg-grid">
+        <div class="fg"><label>대손확정 매출채권 (공급대가)</label><div class="iw"><input type="number" id="f-bad-sales" placeholder="0" oninput="mf(this);calcBad()"><span class="u">원</span></div><div class="hint">대손세액 = 공급대가 × 10/110</div><div class="comma-display" id="cd-bad-sales"></div></div>
+        <div class="fg"><label>매입자 변제액 (공급대가)</label><div class="iw"><input type="number" id="f-bad-pay" placeholder="0" oninput="mf(this);calcBad()"><span class="u">원</span></div><div class="hint">변제 → 매입세액 가산</div><div class="comma-display" id="cd-bad-pay"></div></div>
+      </div>
+      <div class="vauto" id="auto-bad"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ④ 과세표준 안분 (겸영) -->
+<div class="calc-sec" id="cs4">
+  <div class="cs-head" onclick="toggleCS('cs4')">
+    <div class="cs-num">④</div>
+    <div class="cs-title">일괄양도 안분 (겸영·혼합 자산)</div>
+    <div class="cs-sum" id="sum4"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body">
+    <div class="vdesc">기준시가 없는 자산 → 장부가 비율 먼저 배분 → 나머지를 기준시가 안분</div>
+    <div class="fg-grid">
+      <div class="fg"><label>총 양도가액</label><div class="iw"><input type="number" id="f-bulk-total" placeholder="0" oninput="mf(this);calcBulk()"><span class="u">원</span></div><div class="comma-display" id="cd-bulk-total"></div></div>
+      <div class="fg"><label>기준시가 없는 자산 장부가</label><div class="iw"><input type="number" id="f-bulk-nobasis" placeholder="0" oninput="mf(this);calcBulk()"><span class="u">원</span></div><div class="comma-display" id="cd-bulk-nobasis"></div></div>
+      <div class="fg"><label>기준시가 있는 자산 기준시가 합계</label><div class="iw"><input type="number" id="f-bulk-basis" placeholder="0" oninput="mf(this);calcBulk()"><span class="u">원</span></div><div class="comma-display" id="cd-bulk-basis"></div></div>
+      <div class="fg"><label>전체 자산 장부가 합계</label><div class="iw"><input type="number" id="f-bulk-allbook" placeholder="0" oninput="mf(this);calcBulk()"><span class="u">원</span></div><div class="comma-display" id="cd-bulk-allbook"></div></div>
+    </div>
+    <div class="vauto" id="auto-bulk"></div>
+  </div>
+</div>
+
+<!-- ⑤ 간이과세자 -->
+<div class="calc-sec" id="cs5">
+  <div class="cs-head" onclick="toggleCS('cs5')">
+    <div class="cs-num">⑤</div>
+    <div class="cs-title">간이과세자 납부세액</div>
+    <div class="cs-sum" id="sum5"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body">
+    <div class="vdesc">납부세액 = 공급대가 × 부가가치율 × 10% | 의제매입세액 공제 불가 ⚠️ | 4,800만↓ 납부의무 면제</div>
+    <div class="fg-grid trio">
+      <div class="fg"><label>공급대가 합계 (부가세 포함)</label><div class="iw"><input type="number" id="f-simple-total" placeholder="0" oninput="mf(this);calcSimple()"><span class="u">원</span></div><div class="comma-display" id="cd-simple-total"></div></div>
+      <div class="fg">
+        <label>업종별 부가가치율</label>
+        <select id="f-simple-rate" onchange="calcSimple()">
+          <option value="0.15">15% — 전기·가스·증기 및 음식점업</option>
+          <option value="0.20">20% — 제조·숙박·운수·창고</option>
+          <option value="0.30">30% — 소매·재생용 재료 수집</option>
+          <option value="0.40">40% — 농·임·어업·부동산임대·서비스업</option>
+        </select>
+      </div>
+      <div class="fg"><label>세금계산서 수취 매입세액</label><div class="iw"><input type="number" id="f-simple-input" placeholder="0" oninput="mf(this);calcSimple()"><span class="u">원</span></div><div class="hint">공제 = 매입세액 × 부가가치율</div><div class="comma-display" id="cd-simple-input"></div></div>
+      <div class="fg"><label>신용카드 발행 공급대가</label><div class="iw"><input type="number" id="f-simple-card" placeholder="0" oninput="mf(this);calcSimple()"><span class="u">원</span></div><div class="hint">발행세액공제 = 공급대가 × 1.3% (한도 100만)</div><div class="comma-display" id="cd-simple-card"></div></div>
+      <div class="fg"><label>전전연도 공급대가 (면제 판단용)</label><div class="iw"><input type="number" id="f-simple-prev" placeholder="0" oninput="mf(this);calcSimple()"><span class="u">원</span></div><div class="hint">4,800만↓ → 납부의무 면제</div><div class="comma-display" id="cd-simple-prev"></div></div>
+    </div>
+    <div class="vauto" id="auto-simple"></div>
+  </div>
+</div>
+
+<!-- ⑥ 경감·공제세액 -->
+<div class="calc-sec open" id="cs6">
+  <div class="cs-head" onclick="toggleCS('cs6')">
+    <div class="cs-num">⑥</div>
+    <div class="cs-title">경감·공제세액</div>
+    <div class="cs-sum" id="sum6"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body open">
+    <div class="vtabs">
+      <div class="vtab on" onclick="switchV('cr-card',this)">💳 신용카드발행</div>
+      <div class="vtab" onclick="switchV('cr-efiling',this)">🖥️ 전자신고</div>
+      <div class="vtab" onclick="switchV('cr-einvoice',this)">📄 전자세금계산서</div>
+      <div class="vtab" onclick="switchV('cr-prepay',this)">예정납부</div>
+    </div>
+
+    <!-- 신용카드·현금영수증 발행 세액공제 §46 -->
+    <div class="vpanel on" id="vp-cr-card">
+      <div class="vdesc">부가가치세법 §46 | 소비자 상대 업종 개인사업자 (직전연도 공급가액 10억↓) | 법인 불가<br>공급대가 × 1.3% — 한도 연 1,000만원 | ⚠️ 직전연도 5억 초과 ~ 10억 이하는 0.65% (2024 세법개정, 2026.12.31까지)</div>
+      <div class="fg-grid">
+        <div class="fg">
+          <label>사업자 구분</label>
+          <select id="f-cr-card-type" onchange="calcCardCredit()">
+            <option value="ind_u5">개인 · 직전연도 공급가액 5억 이하 → 1.3%</option>
+            <option value="ind_o5">개인 · 5억 초과~10억 이하 → 0.65%</option>
+            <option value="corp">법인 또는 10억 초과 개인 → 공제 불가</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>신용카드·현금영수증 발행 공급대가</label>
+          <div class="iw"><input type="number" id="f-cr-card-amt" placeholder="0" oninput="mf(this);calcCardCredit()"><span class="u">원</span></div>
+          <div class="hint">공급대가 = 부가세 포함 금액</div>
+          <div class="comma-display" id="cd-cr-card-amt"></div>
+        </div>
+        <div class="fg">
+          <label>기신고 공제액 (예정신고분)</label>
+          <div class="iw"><input type="number" id="f-cr-card-prev" placeholder="0" oninput="mf(this);calcCardCredit()"><span class="u">원</span></div>
+          <div class="hint">연간 한도 1,000만원 공유</div>
+          <div class="comma-display" id="cd-cr-card-prev"></div>
+        </div>
+      </div>
+      <div class="vauto" id="auto-cr-card"></div>
+    </div>
+
+    <!-- 전자신고 세액공제 §조특 104의5 -->
+    <div class="vpanel" id="vp-cr-efiling">
+      <div class="vdesc">조세특례제한법 §104의5 | <strong>확정신고만 적용 — 예정신고 불가</strong><br>• 납세자 직접: <strong>5,000원</strong> (2026.2~ 시행령 개정, 종전 1만원)<br>• 세무대리인 대행: 납세자 본인 신고서에 공제 없음 → 세무대리인의 소득세·법인세에서 납세자 1인당 1만원 공제 (개인 연 300만원 / 세무법인 750만원 한도)<br>• 일반과세자: 환급 발생 시에도 공제 가능 | 간이과세자: 납부세액 한도 내</div>
+      <div class="fg-grid">
+        <div class="fg">
+          <label>신고 주체</label>
+          <select id="f-cr-efiling-type" onchange="calcEfilingCredit()">
+            <option value="none">선택하세요</option>
+            <option value="self">납세자 직접 전자신고 → 5,000원 공제</option>
+            <option value="agent">세무대리인 대행 → 납세자 본인 공제 없음 (대리인이 공제)</option>
+            <option value="paper">서면신고 / 예정신고 → 해당 없음</option>
+          </select>
+        </div>
+      </div>
+      <div class="vauto" id="auto-cr-efiling"></div>
+    </div>
+
+    <!-- 전자세금계산서 발급 세액공제 §47 -->
+    <div class="vpanel" id="vp-cr-einvoice">
+      <div class="vdesc">부가가치세법 §47 | <strong>개인사업자만 해당</strong> (법인은 의무발급으로 공제 없음) | 건당 200원 | 연 한도 100만원 | 일몰 2027.12.31<br>⚠️ 발급 다음날까지 국세청 전송 완료분만 적용 | 연 매출 4,800만↓ 간이과세자는 발급 불가 → 해당 없음</div>
+      <div class="fg-grid">
+        <div class="fg">
+          <label>당기 전자세금계산서 발급 건수</label>
+          <input type="number" id="f-cr-einvoice-cnt" placeholder="0" min="0" oninput="calcEinvoiceCredit()">
+          <div class="hint">건당 200원, 연간 100만원 한도</div>
+        </div>
+        <div class="fg">
+          <label>기신고 공제액 (예정신고분)</label>
+          <div class="iw"><input type="number" id="f-cr-einvoice-prev" placeholder="0" oninput="mf(this);calcEinvoiceCredit()"><span class="u">원</span></div>
+          <div class="hint">연간 한도 100만원 공유</div>
+          <div class="comma-display" id="cd-cr-einvoice-prev"></div>
+        </div>
+      </div>
+      <div class="vauto" id="auto-cr-einvoice"></div>
+    </div>
+
+    <!-- 예정납부세액 -->
+    <div class="vpanel" id="vp-cr-prepay">
+      <div class="vdesc">예정신고 납부 또는 예정고지 기납부세액</div>
+      <div class="fg-grid">
+        <div class="fg"><label>예정신고 납부세액</label><div class="iw"><input type="number" id="f-prepay" placeholder="0" oninput="mf(this);calc()"><span class="u">원</span></div><div class="comma-display" id="cd-prepay"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ⑦ 차감납부세액 -->
+<div class="calc-sec open" id="cs7">
+  <div class="cs-head" onclick="toggleCS('cs7')">
+    <div class="cs-num">⑦</div>
+    <div class="cs-title">차감납부세액</div>
+    <div class="cs-sum" id="sum7"></div>
+    <div class="cs-arr">▼</div>
+  </div>
+  <div class="cs-body open">
+    <div id="log7"></div>
+  </div>
+</div>
+
+<!-- RESULT BAR -->
+<div class="result-bar">
+  <div class="rb-label">차감납부세액 (지방소비세 미포함)</div>
+  <div class="rb-val" id="rb-final">—</div>
+  <div class="rb-steps" id="rb-steps"></div>
+</div>
+
+</div><!-- end calc-col -->
+</div><!-- end main -->
+
+<script>
+// ===== DICT =====
+const DICT = [
+  {name:'과세매출액', field:'f-tax-sales', tags:['과세매출','매출','과세공급','공급가액'], hint:'부가세 10% 적용 매출'},
+  {name:'면세매출액', field:'f-free-sales', tags:['면세매출','면세공급','면세'], hint:'부가세 면세 공급'},
+  {name:'영세율 매출', field:'f-zero-sales', tags:['영세율','0%','수출'], hint:'수출·외화획득 용역 등 0% 적용'},
+  {name:'세금계산서 매입세액', field:'f-input-tax', tags:['매입세액','세금계산서매입','매입'], hint:'세금계산서 수취 공제분'},
+  {name:'불공제 매입세액', field:'f-input-notax', tags:['불공제','공제불가','승용차','접대비'], hint:'개소세 승용차·접대비·토지 관련 등'},
+  {name:'신용카드 매입세액', field:'f-input-card', tags:['신용카드매입','카드매입'], hint:'사업용 신용카드 결제분'},
+  {name:'공통매입세액', field:'f-common-tax', tags:['공통매입','공통매입세액'], hint:'과세·면세 겸영 시 안분 필요'},
+  {name:'과세공급가액 (안분용)', field:'f-common-taxable', tags:['과세공급안분','안분과세'], hint:'공통매입 안분 계산용'},
+  {name:'면세공급가액 (안분용)', field:'f-common-exempt', tags:['면세공급안분','안분면세'], hint:'공통매입 안분 계산용'},
+  {name:'면세농산물 매입가액', field:'f-deemed-cost', tags:['면세농산물','의제매입','농산물'], hint:'의제매입세액 공제 대상'},
+  {name:'간주임대료 보증금', field:'f-rent-deposit', tags:['보증금','간주임대료','전세금'], hint:'보증금×이자율×일수/365'},
+  {name:'임대료 수령액', field:'f-rent-income', tags:['임대료','월세'], hint:'실제 수령 임대료'},
+  {name:'대손 매출채권', field:'f-bad-sales', tags:['대손','대손세액','대손확정'], hint:'확정 대손 → 매출세액 차감'},
+  {name:'간이과세 공급대가', field:'f-simple-total', tags:['간이과세','공급대가','간이'], hint:'간이과세자 납부세액 계산용'},
+  {name:'예정신고 납부세액', field:'f-prepay', tags:['예정납부','예정신고'], hint:'예정신고 기납부 세액'},
+  {name:'신용카드 발행 공급대가', field:'f-cr-card-amt', tags:['신용카드발행','카드발행공제','현금영수증발행'], hint:'1.3% 세액공제 대상 공급대가'},
+  {name:'전자세금계산서 발급건수', field:'f-cr-einvoice-cnt', tags:['전자세금계산서발급','전자계산서건수','전자세금계산서'], hint:'건당 200원, 연 100만원 한도'},
+];
+
+let sugIdx = -1;
+
+// ===== UTILS =====
+const fmt = n => Math.round(n).toLocaleString('ko-KR') + ' 원';
+const fmtN = n => Math.round(n).toLocaleString('ko-KR');
+const fmtKo = n => { const a=Math.abs(n); if(a>=1e8) return (n<0?'-':'')+(a/1e8).toFixed(1)+'억원'; if(a>=1e4) return (n<0?'-':'')+Math.round(a/10000)+'만원'; return fmt(n); };
+const v = id => parseFloat(document.getElementById(id)?.value) || 0;
+function lr(lbl,val,cls=''){
+  const cv=cls==='lm'?'color:var(--red)':cls==='lt'?'color:var(--orange);font-weight:700':'';
+  return `<div class="lrow ${cls}"><span class="ll">${lbl}</span><span class="lv" style="${cv}">${typeof val==='number'?fmt(val):val}</span></div>`;
+}
+function setAuto(id,text){
+  const el=document.getElementById(id);if(!el)return;
+  if(text){el.innerHTML='⚡ '+text;el.classList.add('show');}
+  else el.classList.remove('show');
+}
+function mf(el){
+  const n=parseFloat(el.value)||0;
+  el.classList.toggle('filled',n!==0);
+  const sec=el.closest('.calc-sec');
+  if(sec)sec.classList.toggle('filled',[...sec.querySelectorAll('input')].some(i=>parseFloat(i.value)));
+  const cdId='cd-'+el.id.replace('f-','');
+  const cd=document.getElementById(cdId);
+  if(cd)cd.textContent=n?fmtN(n)+' 원':'';
+}
+function toggleCS(id){event.stopPropagation();document.getElementById(id).classList.toggle('open');}
+function switchV(key,el){
+  const parent=el.closest('.cs-body');
+  parent.querySelectorAll('.vtab').forEach(t=>t.classList.remove('on'));
+  parent.querySelectorAll('.vpanel').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  const panel=document.getElementById('vp-'+key);
+  if(panel)panel.classList.add('on');
+}
+
+// ===== AUTOCOMPLETE =====
+function onChatInput(val){
+  const box=document.getElementById('sug-box');
+  if(!val.trim()){box.classList.remove('show');sugIdx=-1;return;}
+  const q=val.toLowerCase().replace(/\s/g,'');
+  const matches=DICT.filter(d=>d.tags.some(t=>t.toLowerCase().includes(q)||q.includes(t.toLowerCase()))||d.name.toLowerCase().replace(/\s/g,'').includes(q)).slice(0,8);
+  if(!matches.length){box.classList.remove('show');return;}
+  box.innerHTML=matches.map((m,i)=>`<div class="sug-item" id="sug-${i}" onclick="applySug(${i})" onmouseover="sugIdx=${i};highlightSug()"><span class="sug-tag">부가세</span><span class="sug-name">${m.name}</span><span class="sug-hint">${m.hint}</span></div>`).join('');
+  box.dataset.matches=JSON.stringify(matches);
+  box.classList.add('show');sugIdx=-1;
+}
+function onChatKey(e){
+  const box=document.getElementById('sug-box');
+  const items=box.querySelectorAll('.sug-item');
+  if(e.key==='ArrowDown'){e.preventDefault();sugIdx=Math.min(sugIdx+1,items.length-1);highlightSug();}
+  else if(e.key==='ArrowUp'){e.preventDefault();sugIdx=Math.max(sugIdx-1,0);highlightSug();}
+  else if(e.key==='Enter'){e.preventDefault();if(sugIdx>=0&&box.classList.contains('show'))applySug(sugIdx);else sendChat();}
+  else if(e.key==='Escape'){box.classList.remove('show');sugIdx=-1;}
+}
+function highlightSug(){document.querySelectorAll('.sug-item').forEach((el,i)=>el.classList.toggle('sel',i===sugIdx));}
+function applySug(idx){
+  const box=document.getElementById('sug-box');
+  const matches=JSON.parse(box.dataset.matches||'[]');
+  const m=matches[idx];if(!m)return;
+  document.getElementById('chat-input').value=m.name+' ';
+  document.getElementById('chat-input').focus();
+  box.classList.remove('show');
+  document.getElementById('input-hint').textContent=`💡 금액 입력: "${m.name} 300만원"`;
+}
+function addMsg(text,type){
+  const hist=document.getElementById('chat-history');
+  const div=document.createElement('div');div.className='msg '+type;div.innerHTML=text;
+  hist.appendChild(div);hist.scrollTop=hist.scrollHeight;
+}
+
+// ===== 질문 감지 =====
+function isQuestion(text){
+  return /[?？]$/.test(text)||
+    /뭐야|뭐임|뭔가요|뭐예요|뭐죠|뭔지|알려줘|설명해|어떻게|방법|요건|차이|한도|기준|계산법|구조|종류|특징|예시|왜|언제|어디|맞아|틀려/.test(text)||
+    (text.length>3&&!/\d/.test(text));
+}
+
+// ===== AI Q&A =====
+// 환경 자동 감지: 클로드 내부 → 직접 API, Netlify → 프록시 함수
+const API_URL = window.location.hostname === 'claude.ai' || window.location.protocol === 'blob:'
+  || window.location.hostname === 'localhost' || window.location.hostname === ''
+  ? 'https://api.anthropic.com/v1/messages'
+  : '/api/ask';
+
+async function askAI(question){
+  const hist=document.getElementById('chat-history');
+  const msgEl=document.createElement('div');
+  msgEl.className='msg bot';
+  msgEl.innerHTML='<span style="animation:blink 1.2s infinite;display:inline-block">⏳ 세법 검색 중...</span>';
+  hist.appendChild(msgEl);hist.scrollTop=hist.scrollHeight;
+  try{
+    const resp=await fetch(API_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:900,
+        system:`당신은 한국 세무사·회계사 시험 전문 강사입니다.
+부가가치세법·소득세법·법인세법·국세기본법을 2026년 현행 법령 기준으로 정확하게 설명합니다.
+
+응답 규칙:
+1. 핵심 개념 1~2문장 먼저 요약
+2. 법령 근거 간략 언급 (부가가치세법 제○조)
+3. 시험 출제 포인트 강조 (⚠️)
+4. 계산식 있으면 공식 형태로 명확하게
+5. 4~8줄 이내 간결하게
+6. HTML 태그 사용 가능: <strong>, <br>
+7. 친근하고 명확한 선생님 톤
+8. 불확실하면 "확인 필요" 명시`,
+        messages:[{role:'user',content:question}]
+      })
+    });
+    const data=await resp.json();
+    const text=data.content?.map(c=>c.text||'').join('')||'답변을 가져오지 못했어요.';
+    msgEl.innerHTML=text.replace(/\n/g,'<br>');
+  }catch(err){
+    msgEl.innerHTML='❌ 연결 오류. 다시 시도해주세요.';
+  }
+  hist.scrollTop=hist.scrollHeight;
+}
+
+// ===== SEND CHAT =====
+function sendChat(){
+  const input=document.getElementById('chat-input');
+  const raw=input.value.trim();if(!raw)return;
+  addMsg(raw,'user');input.value='';
+  document.getElementById('sug-box').classList.remove('show');
+
+  const hasAmount=/\d/.test(raw)&&/(억|만|천|원|백만)/.test(raw);
+  const result=hasAmount?parseInput(raw):null;
+
+  if(result){
+    document.getElementById(result.field).value=result.amount;
+    mf(document.getElementById(result.field));
+    addMsg(`✅ <strong>${result.name}</strong>에 <strong>${fmtKo(result.amount)}</strong> 입력했어요!`,'bot');
+    openSection(result.field);
+    calc();
+    if(window.innerWidth < 768){ setTimeout(()=>switchMobTab('calc'), 800); }
+  } else if(isQuestion(raw)){
+    askAI(raw);
+  } else if(hasAmount){
+    addMsg('❓ 항목을 찾지 못했어요.<br><strong>예시:</strong> 과세매출 2억, 의제매입 5천만, 보증금 1억','bot');
+  } else {
+    askAI(raw);
+  }
+  document.getElementById('input-hint').textContent='💡 금액 입력 또는 세법 질문 모두 가능';
+}
+
+function parseInput(text){
+  const amtMatch=text.match(/([0-9,]+\.?[0-9]*)\s*(억|천만|백만|만원|만|천|백)?\s*원?/);
+  if(!amtMatch)return null;
+  let amount=parseFloat(amtMatch[1].replace(/,/g,''));
+  const unit=amtMatch[2]||'';
+  if(unit==='억')amount*=1e8;
+  else if(unit==='천만')amount*=1e7;
+  else if(unit==='백만')amount*=1e6;
+  else if(unit.startsWith('만'))amount*=1e4;
+  else if(unit==='천')amount*=1e3;
+  else if(unit==='백')amount*=100;
+  const q=text.replace(/[0-9,]+\.?[0-9]*/g,'').replace(/(억|천만|백만|만원|만|천|백|원)/g,'').toLowerCase().replace(/\s+/g,'');
+  let best=null,bestScore=0;
+  for(const d of DICT){
+    let score=0;
+    for(const tag of d.tags){
+      const t=tag.toLowerCase().replace(/\s/g,'');
+      if(q===t)score=Math.max(score,t.length*10);
+      else if(q.includes(t))score=Math.max(score,t.length*5);
+      else if(t.includes(q)&&q.length>=2)score=Math.max(score,q.length*3);
+    }
+    const dn=d.name.toLowerCase().replace(/\s/g,'');
+    if(q===dn)score=Math.max(score,dn.length*8);
+    else if(dn.includes(q)&&q.length>=2)score=Math.max(score,q.length*4);
+    if(score>bestScore){bestScore=score;best=d;}
+  }
+  if(!best||bestScore<4)return null;
+  return{field:best.field,name:best.name,amount};
+}
+
+function openSection(fieldId){
+  const el=document.getElementById(fieldId);if(!el)return;
+  const sec=el.closest('.calc-sec');
+  if(sec&&!sec.classList.contains('open')){sec.classList.add('open');}
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+// ===== SUB CALCULATORS =====
+function calcInstallment(){
+  const type=document.getElementById('f-inst-type')?.value;
+  const total=v('f-inst-total'),times=v('f-inst-times'),months=v('f-inst-months');
+  if(!type||!total){setAuto('auto-inst',null);return;}
+  if(type==='long'){
+    const isLong=times>=2&&months>=12;
+    setAuto('auto-inst',isLong
+      ?`✅ 장기할부 해당 (${times}회, ${months}개월) → <strong>각 대금 받기로 한 때</strong>가 공급시기<br>각 회차 공급가액 = ${fmt(total/times)}`
+      :`⚠️ 장기할부 미해당 (2회↑ AND 1년↑ 조건 불충족) → <strong>인도일</strong>이 공급시기`);
+  } else if(type==='normal'){
+    setAuto('auto-inst','일반할부 → 인도일이 공급시기 (할부라도 조건 미충족 시 전액 한번에)');
+  } else if(type==='progress'){
+    setAuto('auto-inst','완성도기준지급 → <strong>기성고에 따라 대금 받기로 한 때</strong>가 공급시기');
+  }
+}
+
+function calcAdvance(){
+  const issue=document.getElementById('f-adv-issue')?.value;
+  const supply=document.getElementById('f-adv-supply')?.value;
+  const payment=document.getElementById('f-adv-payment')?.value;
+  const period=document.getElementById('f-adv-period')?.value;
+  if(!issue||!supply){setAuto('auto-adv',null);return;}
+  const d1=new Date(issue),d2=new Date(supply);
+  const diffDays=Math.round((d2-d1)/(1000*60*60*24));
+  const payD=payment?new Date(payment):null;
+  const within7=payD&&Math.round((payD-d1)/(1000*60*60*24))<=7;
+  const samePeriod=period==='1'
+    ?(d1.getMonth()<6&&d2.getMonth()<6)
+    :(d1.getMonth()>=6&&d2.getMonth()>=6);
+  const ok=within7||samePeriod;
+  setAuto('auto-adv',ok
+    ?`✅ 선발행 특례 적용 가능 → <strong>세금계산서 발행일(${issue})</strong>이 공급시기<br>${within7?'7일 이내 대가 수령':'같은 과세기간 내 공급 완료'} 조건 충족`
+    :`❌ 선발행 특례 미적용 → <strong>실제 공급일(${supply})</strong>이 공급시기 (${diffDays}일 경과, 과세기간 상이)`);
+}
+
+function calcRental(){
+  const income=v('f-rent-income'),deposit=v('f-rent-deposit');
+  const rate=(v('f-rent-rate')||2.9)/100,days=v('f-rent-days')||181;
+  const bldg=v('f-rent-bldg'),land=v('f-rent-land');
+  if(!deposit&&!income){setAuto('auto-rental',null);return;}
+  const deemedRent=deposit*rate*(days/365);
+  const totalBase=income+deemedRent;
+  let taxBase=totalBase;
+  if(bldg&&land){
+    taxBase=totalBase*(bldg/(bldg+land));
+  }
+  let txt=`임대료 ${fmt(income)} + 간주임대료 ${fmt(deemedRent)} (${deposit.toLocaleString()}×${rate*100}%×${days}/365)<br>`;
+  txt+=`부가세 과세표준 = ${bldg&&land?`총 ${fmt(totalBase)} × 건물비율(${(bldg/(bldg+land)*100).toFixed(1)}%) = ${fmt(taxBase)}`:`${fmt(totalBase)} (건물/토지 구분 없음)`}`;
+  setAuto('auto-rental',txt);
+  document.getElementById('f-tax-sales').value=Math.round(taxBase);
+  mf(document.getElementById('f-tax-sales'));
+  calc();
+}
+
+function calcCommon(){
+  const tax=v('f-common-tax'),taxable=v('f-common-taxable'),exempt=v('f-common-exempt');
+  const cost=v('f-recalc-cost'),typeRate=parseFloat(document.getElementById('f-recalc-type')?.value||0.05);
+  const period=v('f-recalc-period'),currRate=(v('f-recalc-curr')||0)/100,prevRate=(v('f-recalc-prev')||0)/100;
+  let txt='';
+  if(tax&&(taxable||exempt)){
+    const total=taxable+exempt;
+    const exemptRatio=total>0?exempt/total:0;
+    const deductible=tax*(1-exemptRatio);
+    const nonDeductible=tax*exemptRatio;
+    txt+=`면세비율 ${(exemptRatio*100).toFixed(2)}% → 불공제 ${fmt(nonDeductible)} | 공제 ${fmt(deductible)}<br>`;
+    document.getElementById('f-input-tax').value=Math.round(deductible);
+    mf(document.getElementById('f-input-tax'));
+  }
+  if(cost&&period&&(currRate||prevRate)){
+    const remain=1-typeRate*period;
+    const diff=currRate-prevRate;
+    const recalc=cost*Math.max(0,remain)*diff;
+    if(recalc>0) txt+=`재계산 추가납부: ${fmt(cost)}×${(Math.max(0,remain)*100).toFixed(0)}%×(${(currRate*100).toFixed(2)}%-${(prevRate*100).toFixed(2)}%) = ${fmt(recalc)}`;
+    else if(recalc<0) txt+=`재계산 환급: ${fmt(-recalc)}`;
+  }
+  setAuto('auto-common',txt||null);
+  calc();
+}
+
+function calcDeemed(){
+  const cost=v('f-deemed-cost'),rateStr=document.getElementById('f-deemed-rate')?.value||'4/104';
+  const base=v('f-deemed-base');
+  if(!cost){setAuto('auto-deemed',null);return;}
+  const [num,den]=rateStr.split('/').map(Number);
+  const credit=Math.floor(cost*num/den);
+  // 한도: 과세표준×매입세액/(과세+면세공급)의 40~50%는 별도, 여기선 단순 계산
+  let txt=`의제매입세액 = ${fmtN(cost)} × ${num}/${den} = <strong>${fmt(credit)}</strong>`;
+  if(base>0){
+    // 음식점 한도: 과세표준의 75%(개인)/50%(법인)
+    txt+=`<br>⚠️ 한도 초과 여부는 업종별 한도율 별도 확인 필요`;
+  }
+  setAuto('auto-deemed',txt);
+  calc();
+}
+
+function calcBad(){
+  const sales=v('f-bad-sales'),pay=v('f-bad-pay');
+  if(!sales&&!pay){setAuto('auto-bad',null);return;}
+  const badTax=Math.round(sales*10/110);
+  const payTax=Math.round(pay*10/110);
+  let txt='';
+  if(sales>0)txt+=`대손세액 차감 = ${fmt(sales)} × 10/110 = <strong>${fmt(badTax)}</strong> (매출세액 차감)`;
+  if(pay>0)txt+=`${sales>0?' | ':''}변제 가산 = ${fmt(pay)} × 10/110 = <strong>${fmt(payTax)}</strong> (매입세액 가산)`;
+  setAuto('auto-bad',txt);
+  calc();
+}
+
+function calcBulk(){
+  const total=v('f-bulk-total'),nobasis=v('f-bulk-nobasis'),basis=v('f-bulk-basis'),allbook=v('f-bulk-allbook');
+  if(!total||!allbook){setAuto('auto-bulk',null);return;}
+  // Step1: 기준시가 없는 자산 → 장부가 비율로 배분
+  const step1=total*(nobasis/allbook);
+  const remain=total-step1;
+  // Step2: 나머지를 기준시가 비율로 배분
+  let txt=`① 기준시가 없는 자산 배분: ${fmt(total)} × ${fmtN(nobasis)}/${fmtN(allbook)} = ${fmt(step1)}<br>`;
+  txt+=`② 나머지 ${fmt(remain)} → 기준시가 비율로 안분 (기준시가 합계 ${fmt(basis)} 기준)`;
+  setAuto('auto-bulk',txt);
+}
+
+function calcSimple(){
+  const total=v('f-simple-total'),rate=parseFloat(document.getElementById('f-simple-rate')?.value||0.15);
+  const input=v('f-simple-input'),card=v('f-simple-card'),prev=v('f-simple-prev');
+  if(!total){setAuto('auto-simple',null);return;}
+  const liability=total*rate*0.1;
+  const inputCredit=input*rate;
+  const cardCredit=Math.min(card*0.013,1000000);
+  const net=Math.max(0,liability-inputCredit-cardCredit);
+  const exempt=prev<48000000&&prev>0;
+  let txt=`납부세액 = ${fmtN(total)} × ${rate*100}% × 10% = ${fmt(liability)}<br>`;
+  txt+=`세금계산서 공제 ${fmt(inputCredit)} | 신용카드 공제 ${fmt(cardCredit)}<br>`;
+  txt+=`차감 납부세액 = <strong>${fmt(net)}</strong>`;
+  if(exempt)txt+=`<br>⚠️ 전전연도 공급대가 4,800만↓ → <strong>납부의무 면제</strong> 가능`;
+  document.getElementById('sum5').textContent=fmt(net);
+  setAuto('auto-simple',txt);
+}
+
+// ===== 경감·공제세액 서브 계산 =====
+function calcCardCredit(){
+  const type=document.getElementById('f-cr-card-type')?.value;
+  const amt=v('f-cr-card-amt'),prevCr=v('f-cr-card-prev');
+  if(type==='corp'){setAuto('auto-cr-card','❌ 법인사업자 또는 직전연도 공급가액 10억 초과 개인사업자는 공제 대상에서 제외됩니다.');calc();return;}
+  if(!amt){setAuto('auto-cr-card',null);calc();return;}
+  const rate=type==='ind_u5'?0.013:0.0065;
+  const rateText=type==='ind_u5'?'1.3%':'0.65%';
+  const raw=Math.round(amt*rate);
+  const remain=Math.max(0,10000000-prevCr);
+  const credit=Math.min(raw,remain);
+  setAuto('auto-cr-card',`${fmtN(amt)} × ${rateText} = ${fmt(raw)} | 연간 잔여한도 ${fmt(remain)} → <strong>확정 공제액 ${fmt(credit)}</strong>`);
+  calc();
+}
+
+function calcEfilingCredit(){
+  const type=document.getElementById('f-cr-efiling-type')?.value;
+  if(type==='self') setAuto('auto-cr-efiling','납세자 직접 전자신고 → <strong>5,000원 공제</strong> (2026.2 시행령 개정 반영, 종전 1만원)');
+  else if(type==='agent') setAuto('auto-cr-efiling','세무대리인 대행: 납세자 본인 신고서에는 <strong>공제 없음</strong><br>→ 세무대리인이 자신의 소득세·법인세에서 납세자 1인당 1만원 공제 (개인 연 300만원 / 세무법인 750만원 한도)');
+  else setAuto('auto-cr-efiling',null);
+  calc();
+}
+
+function calcEinvoiceCredit(){
+  const cnt=parseInt(document.getElementById('f-cr-einvoice-cnt')?.value)||0;
+  const prevCr=v('f-cr-einvoice-prev');
+  if(!cnt){setAuto('auto-cr-einvoice',null);calc();return;}
+  const raw=cnt*200;
+  const remain=Math.max(0,1000000-prevCr);
+  const credit=Math.min(raw,remain);
+  setAuto('auto-cr-einvoice',`${fmtN(cnt)}건 × 200원 = ${fmtN(raw)}원 | 잔여한도 ${fmt(remain)} → <strong>공제액 ${fmt(credit)}</strong>`);
+  calc();
+}
+
+function getCardCredit(){
+  const type=document.getElementById('f-cr-card-type')?.value;
+  if(type==='corp') return 0;
+  const amt=v('f-cr-card-amt');if(!amt) return 0;
+  const rate=type==='ind_u5'?0.013:0.0065;
+  return Math.min(Math.round(amt*rate),Math.max(0,10000000-v('f-cr-card-prev')));
+}
+function getEfilingCredit(){
+  const type=document.getElementById('f-cr-efiling-type')?.value;
+  return type==='self'?5000:0;
+}
+function getEinvoiceCredit(){
+  const cnt=parseInt(document.getElementById('f-cr-einvoice-cnt')?.value)||0;
+  return Math.min(cnt*200,Math.max(0,1000000-v('f-cr-einvoice-prev')));
+}
+
+// ===== MAIN CALC =====
+function calc(){
+  const taxSales=v('f-tax-sales'),freeSales=v('f-free-sales'),zeroSales=v('f-zero-sales');
+  const outputTax=taxSales*0.1;
+  const badSales=v('f-bad-sales'),badPay=v('f-bad-pay');
+  const badTaxAdj=Math.round(badSales*10/110);
+  const badPayAdj=Math.round(badPay*10/110);
+  const netOutput=outputTax-badTaxAdj;
+
+  document.getElementById('sum1').textContent=fmt(taxSales+freeSales+zeroSales);
+  document.getElementById('sum2').textContent=fmt(netOutput);
+  document.getElementById('log2').innerHTML=
+    lr('과세공급가액',taxSales)+lr('매출세액 (×10%)',outputTax)+
+    (badTaxAdj?lr('대손세액 차감',-badTaxAdj,'lm'):'')+
+    (badPayAdj?lr('변제 가산',badPayAdj):'')+lr('차감 매출세액',netOutput,'lt');
+
+  const inputTax=v('f-input-tax'),inputCard=v('f-input-card'),inputImport=v('f-input-import');
+  const deemedStr=document.getElementById('f-deemed-rate')?.value||'4/104';
+  const [dnum,dden]=deemedStr.split('/').map(Number);
+  const deemedCredit=Math.floor(v('f-deemed-cost')*dnum/dden);
+  const totalInput=inputTax+inputCard+inputImport+deemedCredit;
+  document.getElementById('sum3').textContent=fmt(totalInput);
+
+  // 경감·공제세액
+  const cardCredit=getCardCredit();
+  const efilingCredit=getEfilingCredit();
+  const einvoiceCredit=getEinvoiceCredit();
+  const prepay=v('f-prepay');
+  const totalCredit=cardCredit+efilingCredit+einvoiceCredit;
+  document.getElementById('sum6').textContent=totalCredit>0?'-'+fmt(totalCredit):'';
+
+  // 차감납부세액
+  const vatPayable=netOutput-totalInput-totalCredit-prepay;
+  document.getElementById('sum7').textContent=vatPayable>=0?fmt(vatPayable):'환급 '+fmt(-vatPayable);
+  document.getElementById('log7').innerHTML=
+    lr('매출세액',netOutput)+
+    lr('(-) 매입세액 합계',-totalInput,'lm')+
+    (cardCredit?lr('(-) 신용카드발행 세액공제',-cardCredit,'lm'):'')+
+    (efilingCredit?lr('(-) 전자신고 세액공제',-efilingCredit,'lm'):'')+
+    (einvoiceCredit?lr('(-) 전자세금계산서 세액공제',-einvoiceCredit,'lm'):'')+
+    (prepay?lr('(-) 예정신고 납부세액',-prepay,'lm'):'')+
+    lr(vatPayable>=0?'차감납부세액':'환급세액',Math.abs(vatPayable),'lt');
+
+  document.getElementById('rb-final').textContent=vatPayable>=0?fmt(vatPayable):'환급 '+fmt(-vatPayable);
+  document.getElementById('rb-steps').innerHTML=
+    `<div class="rb-step"><span>매출세액</span> ${fmtKo(netOutput)}</div>`+
+    `<div class="rb-step"><span>- 매입세액</span> ${fmtKo(totalInput)}</div>`+
+    (totalCredit?`<div class="rb-step"><span>- 경감공제</span> ${fmtKo(totalCredit)}</div>`:'')+
+    `<div class="rb-step"><span>= 납부세액</span> ${fmtKo(Math.max(0,vatPayable))}</div>`;
+}
+
+calc();
+
+// ===== 모바일 탭 전환 =====
+function switchMobTab(tab){
+  document.querySelectorAll('.mob-tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===tab));
+  const chatCol=document.querySelector('.chat-col');
+  const calcCol=document.getElementById('calc-col');
+  if(tab==='chat'){chatCol.classList.add('mob-active');calcCol.classList.remove('mob-active');}
+  else{chatCol.classList.remove('mob-active');calcCol.classList.add('mob-active');}
+}
+if(window.innerWidth < 768) switchMobTab('chat');
+</script>
+</body>
+</html>
