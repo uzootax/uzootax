@@ -11,8 +11,9 @@ module.exports = async function(req, res) {
   if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: 'API key not configured' });
 
   try {
-    // Vercel은 body를 자동으로 객체로 파싱 → 다시 string으로
     const body = JSON.stringify(req.body);
+    console.log('body:', body); // 전달되는 내용 확인
+    console.log('key prefix:', ANTHROPIC_API_KEY.substring(0, 15)); // 키 앞부분 확인
 
     const data = await new Promise((resolve, reject) => {
       const options = {
@@ -30,7 +31,10 @@ module.exports = async function(req, res) {
       const request = https.request(options, (response) => {
         let data = '';
         response.on('data', chunk => data += chunk);
-        response.on('end', () => resolve({ status: response.statusCode, body: data }));
+        response.on('end', () => {
+          console.log('anthropic response:', data);
+          resolve({ status: response.statusCode, body: data });
+        });
       });
 
       request.on('error', reject);
@@ -40,6 +44,7 @@ module.exports = async function(req, res) {
 
     res.status(data.status).json(JSON.parse(data.body));
   } catch (err) {
+    console.log('error:', err.message);
     res.status(500).json({ error: err.message });
   }
 };
